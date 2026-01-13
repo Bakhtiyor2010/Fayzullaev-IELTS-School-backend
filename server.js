@@ -52,12 +52,16 @@ app.post("/api/send-message", async (req, res) => {
   try {
     const users = await User.find({ _id: { $in: userIds } });
 
-    // Barcha xabarlarni parallel yuborish
-    const results = await Promise.allSettled(users.map(user =>
-      bot.sendMessage(user.telegramId, message)
-        .then(() => ({ user: `${user.name} ${user.surname}`, status: "Sent" }))
-        .catch(() => ({ user: `${user.name} ${user.surname}`, status: "Failed" }))
-    ));
+    const results = await Promise.allSettled(
+      users.map(user => {
+        // Shu yerda template qo‘shiladi
+        const text = `Hurmatli, ${user.name} ${user.surname}\n\n${message}`;
+        return bot
+          .sendMessage(user.telegramId, text)
+          .then(() => ({ user: `${user.name} ${user.surname}`, status: "Sent" }))
+          .catch(() => ({ user: `${user.name} ${user.surname}`, status: "Failed" }));
+      })
+    );
 
     res.json({ results: results.map(r => r.value) });
   } catch (err) {
