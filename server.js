@@ -55,7 +55,7 @@ app.post("/api/send-message", async (req, res) => {
     const results = await Promise.allSettled(
       users.map(user => {
         // Shu yerda template qo‘shiladi
-        const text = `Hurmatli, ${user.name} ${user.surname}\n\n${message}`;
+        const text = `Assalomu alaykum, hurmatli ${user.name} ${user.surname}\n\n${message}`;
         return bot
           .sendMessage(user.telegramId, text)
           .then(() => ({ user: `${user.name} ${user.surname}`, status: "Sent" }))
