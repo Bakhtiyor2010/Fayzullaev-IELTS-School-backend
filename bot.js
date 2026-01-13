@@ -11,15 +11,29 @@ const userStates = {};
 // /start komandasi
 bot.onText(/\/start/, async (msg) => {
   const chatId = msg.chat.id;
-  userStates[chatId] = { step: "ask_name" };
 
   try {
+    const existingUser = await User.findOne({ telegramId: chatId });
+
+    if (existingUser) {
+      // Foydalanuvchi allaqachon ro'yxatdan o'tgan
+      await bot.sendMessage(
+        chatId,
+        `Xush kelibsiz, ${existingUser.name} ${existingUser.surname}!\n` +
+        "Ma’lumotlaringizni o'zgartirmoqchi bo'lsangiz /update, botni tark etmoqchi bo'lsangiz /delete ni bosing."
+      );
+      return; // yangi state yaratishga hojat yo'q
+    }
+
+    // Yangi foydalanuvchi
+    userStates[chatId] = { step: "ask_name" };
     await bot.sendMessage(
       chatId,
       "Salom! Fayzullaev IELTS School botiga xush kelibsiz!\n" +
       "Ma’lumotlaringizni o'zgartirmoqchi bo'lsangiz /update, botni tark etmoqchi bo'lsangiz /delete ni bosing."
     );
     await bot.sendMessage(chatId, "Iltimos, ismingizni kiriting:");
+
   } catch (err) {
     console.error(err);
     bot.sendMessage(chatId, "Server xatosi yuz berdi.");
