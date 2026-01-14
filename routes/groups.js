@@ -4,7 +4,7 @@ const Group = require("../models/Group");
 const User = require("../models/User");
 const bot = require("../bot");
 
-const checkRole = require("../middlewares/checkRole");
+// const checkRole = require("../middlewares/checkRole");  // o'chirdik
 
 // GET all groups – barcha adminlar ko‘ra oladi
 router.get("/", async (req, res) => {
@@ -32,8 +32,8 @@ router.post("/", async (req, res) => {
   }
 });
 
-// PUT edit group – faqat superadmin
-router.put("/:id", checkRole(["superadmin"]), async (req, res) => {
+// PUT edit group – hozir barcha adminlar uchun
+router.put("/:id", async (req, res) => {
   try {
     const { name } = req.body;
     const group = await Group.findByIdAndUpdate(
@@ -61,8 +61,8 @@ router.put("/:id", checkRole(["superadmin"]), async (req, res) => {
   }
 });
 
-// DELETE group – faqat superadmin
-router.delete("/:id", checkRole(["superadmin"]), async (req, res) => {
+// DELETE group – hozir barcha adminlar uchun
+router.delete("/:id", async (req, res) => {
   try {
     const groupId = req.params.id;
 
