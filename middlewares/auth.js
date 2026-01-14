@@ -1,17 +1,16 @@
-const Admin = require("../models/Admin");
-
 async function attachAdmin(req, res, next) {
-  const adminId = req.header("admin-id");
-  if (!adminId) return next();
+  const token = req.header("Authorization");
+  if (!token) return next();
 
   try {
-    const admin = await Admin.findById(adminId);
+    const id = token.replace("admin-", "");
+    const Admin = require("../models/Admin");
+    const admin = await Admin.findById(id);
     if (admin) req.admin = admin;
-    next();
   } catch (err) {
     console.error(err);
-    next();
   }
+  next();
 }
 
 module.exports = attachAdmin;
