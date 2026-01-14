@@ -4,7 +4,9 @@ const Group = require("../models/Group");
 const User = require("../models/User");
 const bot = require("../bot");
 
-// GET all groups
+const checkRole = require("../middlewares/checkRole");
+
+// GET all groups – barcha adminlar ko‘ra oladi
 router.get("/", async (req, res) => {
   try {
     const groups = await Group.find();
@@ -15,7 +17,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-// POST create group
+// POST create group – barcha adminlar yaratishi mumkin
 router.post("/", async (req, res) => {
   try {
     const { name } = req.body;
@@ -30,17 +32,24 @@ router.post("/", async (req, res) => {
   }
 });
 
-// PUT edit group (nomi o'zgartirilsa botga xabar)
-router.put("/:id", async (req, res) => {
+// PUT edit group – faqat superadmin
+router.put("/:id", checkRole(["superadmin"]), async (req, res) => {
   try {
     const { name } = req.body;
-    const group = await Group.findByIdAndUpdate(req.params.id, { name }, { new: true });
+    const group = await Group.findByIdAndUpdate(
+      req.params.id,
+      { name },
+      { new: true }
+    );
 
     if (group) {
       const usersInGroup = await User.find({ groupId: group._id });
       for (const user of usersInGroup) {
         if (user.telegramId) {
-          await bot.sendMessage(user.telegramId, `ℹ️ Sizning guruh nomingiz "${name}" ga o'zgartirildi.`);
+          await bot.sendMessage(
+            user.telegramId,
+            `ℹ️ Sizning guruh nomingiz "${name}" ga o'zgartirildi.`
+          );
         }
       }
     }
@@ -52,13 +61,13 @@ router.put("/:id", async (req, res) => {
   }
 });
 
-// DELETE group (userlar bilan birga + bot xabarlari)
-router.delete("/:id", async (req, res) => {
+// DELETE group – faqat superadmin
+router.delete("/:id", checkRole(["superadmin"]), async (req, res) => {
   try {
     const groupId = req.params.id;
 
     const group = await Group.findById(groupId);
-    if(!group) return res.status(404).json({ error: "Group not found" });
+    if (!group) return res.status(404).json({ error: "Group not found" });
 
     const usersInGroup = await User.find({ groupId });
 
@@ -66,16 +75,18 @@ router.delete("/:id", async (req, res) => {
 
     for (const user of usersInGroup) {
       await User.findByIdAndDelete(user._id);
-      if(user.telegramId){
-        await bot.sendMessage(user.telegramId, `⚠️ Sizning guruhingiz "${group.name}" o'chirildi. Sizning ma'lumotlaringiz ham o'chirildi.`);
+      if (user.telegramId) {
+        await bot.sendMessage(
+          user.telegramId,
+          `⚠️ Sizning guruhingiz "${group.name}" o'chirildi. Sizning ma'lumotlaringiz ham o'chirildi.`
+        );
       }
     }
 
-    res.json({ message:"Group and its users deleted" });
-
-  } catch(err){
+    res.json({ message: "Group and its users deleted" });
+  } catch (err) {
     console.error(err);
-    res.status(500).json({ error:"Server error" });
+    res.status(500).json({ error: "Server error" });
   }
 });
 

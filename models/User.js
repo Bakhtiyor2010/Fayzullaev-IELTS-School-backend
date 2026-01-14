@@ -6,6 +6,7 @@ const userSchema = new mongoose.Schema({
   telegramId: { type: String, required: true },
   phone: { type: String, required: true },
   groupId: { type: mongoose.Schema.Types.ObjectId, ref: "Group" },
+  role: { type: String, enum: ["superadmin", "moderator"], default: "moderator" }, // Qo'shildi
   createdAt: { type: Date, default: Date.now }
 });
 

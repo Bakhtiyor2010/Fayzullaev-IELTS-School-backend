@@ -8,19 +8,23 @@ const userRoutes = require("./routes/users");
 const adminRoutes = require("./routes/admin");
 const groupRoutes = require("./routes/groups");
 const attendanceRoutes = require("./routes/attendance"); // attendance
+const paymentRoutes = require("./routes/payment"); // yangi
 const bot = require("./bot"); // Telegram bot
+const attachUser = require("./middlewares/auth"); // yangi
 
 const app = express();
 
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use(attachUser); // har bir requestda req.user attach qilinadi
 
 // Routes
 app.use("/api/users", userRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/groups", groupRoutes);
 app.use("/api/attendance", attendanceRoutes);
+app.use("/api/payment", paymentRoutes); // yangi
 
 // Test route
 app.get("/", (req, res) => res.send("API working ✅"));
