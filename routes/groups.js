@@ -57,21 +57,25 @@ router.delete("/:id", async (req, res) => {
   try {
     const groupId = req.params.id;
 
+    const group = await Group.findById(groupId);
+    if(!group) return res.status(404).json({ error: "Group not found" });
+
     const usersInGroup = await User.find({ groupId });
 
     await Group.findByIdAndDelete(groupId);
 
     for (const user of usersInGroup) {
       await User.findByIdAndDelete(user._id);
-      if (user.telegramId) {
-        await bot.sendMessage(user.telegramId, `⚠️ Sizning guruhingiz "${user.groupId}" o'chirildi. Sizning ma'lumotlaringiz ham o'chirildi.`);
+      if(user.telegramId){
+        await bot.sendMessage(user.telegramId, `⚠️ Sizning guruhingiz "${group.name}" o'chirildi. Sizning ma'lumotlaringiz ham o'chirildi.`);
       }
     }
 
-    res.json({ message: "Group and its users deleted" });
-  } catch (err) {
+    res.json({ message:"Group and its users deleted" });
+
+  } catch(err){
     console.error(err);
-    res.status(500).json({ error: "Server error" });
+    res.status(500).json({ error:"Server error" });
   }
 });
 
