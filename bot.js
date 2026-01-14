@@ -81,7 +81,7 @@ bot.on("message", async (msg) => {
     } else if (state.step === "ask_surname") {
       state.surname = text;
       state.step = "ask_phone";
-      await bot.sendMessage(chatId, "Telefon raqamingizni kiriting (masalan +998901234567):");
+      await bot.sendMessage(chatId, "Telefon raqamingizni kiriting (masalan +998901234567 yoki 901234567):");
     } else if (state.step === "ask_phone") {
       state.phone = text;
 

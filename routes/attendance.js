@@ -1,35 +1,49 @@
 const express = require("express");
 const router = express.Router();
 const Attendance = require("../models/Attendance");
-const User = require("../models/User");
-const bot = require("../bot");
 
-// POST mark attendance
-router.post("/", async (req,res)=>{
-  const { userId, groupId, status } = req.body;
+// Attendance qo'shish / update
+router.post("/", async (req, res) => {
+  try {
+    const { userId, groupId, status } = req.body;
+    if (!userId || !groupId || !status) return res.status(400).json({ error: "Missing fields" });
 
-  if(!userId || !status) return res.status(400).json({error:"Missing fields"});
+    const today = new Date();
+    today.setHours(0,0,0,0);
 
-  const attendance = new Attendance({ userId, groupId, status });
-  await attendance.save();
+    let attendance = await Attendance.findOne({ userId, groupId, date: { $gte: today } });
 
-  // Telegramga xabar yuborish
-  const user = await User.findById(userId);
-  if(user?.telegramId){
-    const text = status === "present" 
-      ? "Siz bugun ishtirok etdiniz ✅"
-      : "Siz bugun qatnashmadingiz ❌";
-    bot.sendMessage(user.telegramId, text).catch(console.error);
+    if(attendance) {
+      attendance.status = status;
+      await attendance.save();
+    } else {
+      attendance = new Attendance({ userId, groupId, status });
+      await attendance.save();
+    }
+
+    res.json({ message: "Attendance saved", attendance });
+  } catch(err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
   }
-
-  res.json(attendance);
 });
 
-// GET user attendance history
-router.get("/:userId", async (req,res)=>{
-  const history = await Attendance.find({ userId: req.params.userId })
-    .sort({date:-1});
-  res.json(history);
+// Attendance history by group
+router.get("/history/:groupId", async (req, res) => {
+  try {
+    const { groupId } = req.params;
+    const today = new Date();
+    today.setHours(0,0,0,0);
+
+    const records = await Attendance.find({ groupId })
+      .populate("userId", "name surname")
+      .sort({ date: -1 });
+
+    res.json(records);
+  } catch(err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
 });
 
 module.exports = router;

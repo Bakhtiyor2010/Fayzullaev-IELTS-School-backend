@@ -7,7 +7,7 @@ const connectDB = require("./config/db");
 const userRoutes = require("./routes/users");
 const adminRoutes = require("./routes/admin");
 const groupRoutes = require("./routes/groups");
-const attendanceRoutes = require("./routes/attendance");
+const attendanceRoutes = require("./routes/attendance"); // yangi
 const User = require("./models/User");
 const bot = require("./bot"); // Telegram bot
 
@@ -21,7 +21,7 @@ app.use(express.json());
 app.use("/api/users", userRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/groups", groupRoutes);
-app.use("/api/attendance", attendanceRoutes);
+app.use("/api/attendance", attendanceRoutes); // qo‘shildi
 
 // Test route
 app.get("/", (req, res) => res.send("API working ✅"));
@@ -36,8 +36,10 @@ app.delete("/api/users/:id", async (req, res) => {
 
     // Telegram xabar yuborish
     if (user.telegramId) {
-      bot.sendMessage(user.telegramId, "❌ Sizning ma’lumotlaringiz admin tomonidan o‘chirildi.")
-        .catch(err => console.error("Telegram message error:", err.message));
+      bot.sendMessage(
+        user.telegramId,
+        "❌ Sizning ma’lumotlaringiz admin tomonidan o‘chirildi."
+      ).catch(err => console.error("Telegram message error:", err.message));
     }
 
     res.json({ message: "User deleted and notified" });
