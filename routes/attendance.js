@@ -22,12 +22,6 @@ router.post("/", async (req, res) => {
       await attendance.save();
     }
 
-    // Telegram notification
-    const user = await User.findById(userId);
-    if(user && user.telegramId) {
-      bot.sendMessage(user.telegramId, `Sizning attendance holatingiz: ${status}`);
-    }
-
     res.json({ message: "Attendance saved", attendance });
   } catch(err) {
     console.error(err);
