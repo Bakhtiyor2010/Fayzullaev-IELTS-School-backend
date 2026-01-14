@@ -11,13 +11,14 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ error: 'Username va password kerak' });
     }
 
-    const admin = await Admin.findOne({ username });
+    // MongoDB da username tekshirish
+    const admin = await Admin.findOne({ username: username.trim() }); // trim qo‘shildi
     if (!admin) {
       return res.status(401).json({ error: 'Username yoki password xato' });
     }
 
-    // Plain text solishtirish
-    if (admin.password !== password) {
+    // Password tekshirish
+    if (admin.password !== password.trim()) { // trim qo‘shildi
       return res.status(401).json({ error: 'Username yoki password xato' });
     }
 
