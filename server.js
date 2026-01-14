@@ -8,7 +8,7 @@ const adminRoutes = require("./routes/admin");
 const userRoutes = require("./routes/users");
 const groupRoutes = require("./routes/groups");
 const attendanceRoutes = require("./routes/attendance");
-const paymentRoutes = require("./routes/payment");
+// paymentRoutes olib tashlandi
 
 const app = express();
 
@@ -20,7 +20,7 @@ app.use(cors({
     "https://fayzullaevieltsschool.netlify.app"
   ],
   credentials: true,
-  methods: ["GET","POST","PUT","DELETE","OPTIONS"]
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
 }));
 
 // JSON parse
@@ -29,11 +29,10 @@ app.use(express.json());
 // Public login route
 app.use("/api/admin", adminRoutes);
 
-// Boshqa routelar (agar middleware kerak bo‘lsa, keyin qo‘shish mumkin)
+// Boshqa routelar
 app.use("/api/users", userRoutes);
 app.use("/api/groups", groupRoutes);
 app.use("/api/attendance", attendanceRoutes);
-app.use("/api/payment", paymentRoutes);
 
 // Test route
 app.get("/", (req, res) => res.send("API working ✅"));
