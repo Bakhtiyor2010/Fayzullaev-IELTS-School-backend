@@ -32,7 +32,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-// PUT — group tahrirlash + Telegram xabar
+// PUT — group nomini tahrirlash
 router.put("/:id", async (req, res) => {
   try {
     const { name } = req.body;
@@ -40,6 +40,7 @@ router.put("/:id", async (req, res) => {
 
     await groupsCollection.doc(req.params.id).update({ name });
 
+    // Telegram xabari
     const usersSnapshot = await usersCollection.where("groupId", "==", req.params.id).get();
     for (const doc of usersSnapshot.docs) {
       const user = doc.data();
@@ -55,23 +56,39 @@ router.put("/:id", async (req, res) => {
   }
 });
 
-// DELETE — group o‘chirish + userlarni groupId null qilish
+// DELETE — guruhni o'chirish + userlarni o'chirish + xabar
 router.delete("/:id", async (req, res) => {
   try {
-    const docRef = groupsCollection.doc(req.params.id);
-    const docSnap = await docRef.get();
-    if (!docSnap.exists) return res.status(404).json({ error: "Group not found" });
+    const groupId = req.params.id;
 
-    const usersSnapshot = await usersCollection.where("groupId", "==", req.params.id).get();
+    // 🔹 1️⃣ Guruhni o'chirish
+    await groupsCollection.doc(groupId).delete();
+
+    // 🔹 2️⃣ Guruhga tegishli userlar
+    const usersSnapshot = await usersCollection.where("groupId", "==", groupId).get();
+
+    const deletePromises = [];
     for (const doc of usersSnapshot.docs) {
-      await doc.ref.update({ groupId: null });
+      const user = doc.data();
+
+      // Telegramga xabar yuborish (xatolikni frontendga bermaymiz)
+      if (user.telegramId) {
+        deletePromises.push(
+          bot.sendMessage(user.telegramId, `⚠️ Hurmatli ${user.name}, sizning guruhingiz o‘chirildi va tizimdan olib tashlandingiz.`)
+            .catch(err => console.error("Notification failed:", err))
+        );
+      }
+
+      // Userni o'chirish
+      deletePromises.push(usersCollection.doc(doc.id).delete());
     }
 
-    await docRef.delete();
-    res.json({ success: true, message: "Group deleted successfully" });
+    await Promise.all(deletePromises);
+
+    res.json({ message: "Group and its users deleted successfully" });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Failed to delete group" });
+    res.status(500).json({ error: "Failed to delete group and users" });
   }
 });
 
