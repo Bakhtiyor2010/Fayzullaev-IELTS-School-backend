@@ -1,5 +1,9 @@
 const admin = require("firebase-admin");
 
+if (!process.env.FIREBASE_PRIVATE_KEY || !process.env.FIREBASE_PROJECT_ID) {
+  throw new Error("FIREBASE_PRIVATE_KEY or FIREBASE_PROJECT_ID is missing in your .env");
+}
+
 const serviceAccount = {
   type: process.env.FIREBASE_TYPE,
   project_id: process.env.FIREBASE_PROJECT_ID,
