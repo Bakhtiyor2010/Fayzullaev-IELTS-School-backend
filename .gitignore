@@ -1,6 +1,9 @@
 # Node.js dependencies
 node_modules/
 
+# Firebase json
+firebase-service-account.json
+
 # Environment variables
 .env
 
