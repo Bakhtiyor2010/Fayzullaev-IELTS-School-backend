@@ -4,67 +4,112 @@ const usersCollection = require("./models/User");
 const groupsCollection = require("./models/Group");
 
 const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
-const userStates = {};
+const userStates = {}; // ChatID bo'yicha foydalanuvchi state
 
-// /start komandasi
+// 🔹 Foydalanuvchiga xabar yuborish helper
+async function sendMessage(chatId, text, options = {}) {
+  try {
+    await bot.sendMessage(chatId, text, options);
+  } catch (err) {
+    console.error("Failed to send message:", err);
+  }
+}
+
+// 🔹 /start komandasi
 bot.onText(/\/start/, async (msg) => {
   const chatId = msg.chat.id;
+
+  // Foydalanuvchi hali ro'yxatdan o'tmagan bo'lsa
+  const snapshot = await usersCollection.doc(String(chatId)).get();
+  if (snapshot.exists) {
+    return sendMessage(chatId, "Siz allaqachon ro‘yxatdan o‘tgan ekansiz. /update bilan yangilashingiz mumkin.");
+  }
+
+  // Foydalanuvchi state boshlash
   userStates[chatId] = { step: "ask_name" };
 
-  try {
-    await bot.sendMessage(
-      chatId,
-      "Salom! Fayzullaev IELTS School botiga xush kelibsiz!\n" +
-      "Ma’lumotlaringizni o'zgartirmoqchi bo'lsangiz /update, botni tark etmoqchi bo'lsangiz /delete ni bosing."
-    );
-    await bot.sendMessage(chatId, "Iltimos, ismingizni kiriting:");
-  } catch (err) {
-    console.error(err);
-    bot.sendMessage(chatId, "Server xatosi yuz berdi.");
-  }
+  await sendMessage(chatId, "Salom! Fayzullaev IELTS School botiga xush kelibsiz!");
+  await sendMessage(chatId, "Iltimos, ismingizni kiriting:");
 });
 
-// /update komandasi
+// 🔹 /update komandasi
 bot.onText(/\/update/, async (msg) => {
   const chatId = msg.chat.id;
-  delete userStates[chatId];
+  const snapshot = await usersCollection.where("telegramId", "==", chatId).get();
 
-  try {
-    const snapshot = await usersCollection.where("telegramId", "==", chatId).get();
-    if (snapshot.empty) {
-      bot.sendMessage(chatId, "Siz hali ro‘yxatdan o‘tmagansiz. /start ni bosing.");
-      return;
-    }
-
-    userStates[chatId] = { step: "update_name" };
-    await bot.sendMessage(chatId, "Iltimos, yangi ismingizni kiriting:");
-  } catch (err) {
-    console.error(err);
-    bot.sendMessage(chatId, "Server xatosi yuz berdi.");
+  if (snapshot.empty) {
+    return sendMessage(chatId, "Siz hali ro‘yxatdan o‘tmagansiz. /start ni bosing.");
   }
+
+  userStates[chatId] = { step: "update_name" };
+  await sendMessage(chatId, "Iltimos, yangi ismingizni kiriting:");
 });
 
-// /delete komandasi
+// 🔹 /delete komandasi
 bot.onText(/\/delete/, async (msg) => {
   const chatId = msg.chat.id;
-  delete userStates[chatId];
+  const snapshot = await usersCollection.where("telegramId", "==", chatId).get();
+
+  if (!snapshot.empty) {
+    const docId = snapshot.docs[0].id;
+    await usersCollection.doc(docId).delete();
+    delete userStates[chatId];
+    return sendMessage(chatId, "Sizning ma’lumotlaringiz o‘chirildi. /start bilan qayta ro‘yxatdan o‘ting.");
+  }
+
+  sendMessage(chatId, "Siz hali ro‘yxatdan o‘tmagansiz.");
+});
+
+// 🔹 Callback query (inline buttons)
+bot.on("callback_query", async (query) => {
+  const chatId = query.message.chat.id;
+  const state = userStates[chatId];
+  if (!state) return bot.answerCallbackQuery(query.id);
 
   try {
-    const snapshot = await usersCollection.where("telegramId", "==", chatId).get();
-    if (!snapshot.empty) {
-      const docId = snapshot.docs[0].id;
-      await usersCollection.doc(docId).delete();
-      bot.sendMessage(chatId, "Sizning ma’lumotlaringiz o‘chirildi. /start bilan qayta ro‘yxatdan o‘ting.");
-    } else {
-      bot.sendMessage(chatId, "Siz hali ro‘yxatdan o‘tmagansiz.");
+    const groupId = query.data;
+    const groupDoc = await groupsCollection.doc(groupId).get();
+    const groupName = groupDoc.data()?.name || "Unknown";
+
+    if (state.step === "ask_group") {
+      state.groupId = groupId;
+      await usersCollection.doc(String(chatId)).set({
+        telegramId: chatId,
+        name: state.name,
+        surname: state.surname,
+        phone: state.phone,
+        groupId,
+        role: "moderator",
+        createdAt: new Date()
+      });
+      await sendMessage(chatId, `Rahmat, ${state.name} ${state.surname}! Siz ${groupName} guruhiga qo‘shildingiz.`);
+      delete userStates[chatId];
+
+    } else if (state.step === "update_group") {
+      state.groupId = groupId;
+      const snapshot = await usersCollection.where("telegramId", "==", chatId).get();
+      if (!snapshot.empty) {
+        const docId = snapshot.docs[0].id;
+        await usersCollection.doc(docId).update({
+          name: state.name,
+          surname: state.surname,
+          phone: state.phone,
+          groupId
+        });
+      }
+      await sendMessage(chatId, `Sizning ma’lumotlaringiz yangilandi va guruhingiz ${groupName} bo‘ldi.`);
+      delete userStates[chatId];
     }
+
+    await bot.answerCallbackQuery(query.id);
+
   } catch (err) {
     console.error(err);
-    bot.sendMessage(chatId, "Server xatosi yuz berdi.");
+    sendMessage(chatId, "Server xatosi yuz berdi.");
   }
 });
 
-// Har qanday matnli xabarni qabul qilish
+// 🔹 Matnli xabarlarni qabul qilish
 bot.on("message", async (msg) => {
   const chatId = msg.chat.id;
   const text = msg.text;
@@ -75,102 +120,53 @@ bot.on("message", async (msg) => {
     if (state.step === "ask_name") {
       state.name = text;
       state.step = "ask_surname";
-      await bot.sendMessage(chatId, "Familiyangizni kiriting:");
+      return sendMessage(chatId, "Familiyangizni kiriting:");
+
     } else if (state.step === "ask_surname") {
       state.surname = text;
       state.step = "ask_phone";
-      await bot.sendMessage(chatId, "Telefon raqamingizni kiriting (masalan +998901234567):");
+      return sendMessage(chatId, "Telefon raqamingizni kiriting (masalan +998901234567):");
+
     } else if (state.step === "ask_phone") {
       state.phone = text;
-
       const groupsSnapshot = await groupsCollection.get();
+
       if (groupsSnapshot.empty) {
-        await bot.sendMessage(chatId, "Hozircha guruhlar mavjud emas. Admin bilan bog'laning.");
         delete userStates[chatId];
-        return;
+        return sendMessage(chatId, "Hozircha guruhlar mavjud emas. Admin bilan bog'laning.");
       }
 
       const buttons = groupsSnapshot.docs.map(g => [{ text: g.data().name, callback_data: g.id }]);
-      await bot.sendMessage(chatId, "Iltimos, guruhingizni tanlang:", { reply_markup: { inline_keyboard: buttons } });
-
       state.step = "ask_group";
+      return sendMessage(chatId, "Iltimos, guruhingizni tanlang:", { reply_markup: { inline_keyboard: buttons } });
+
     } else if (state.step === "update_name") {
       state.name = text;
       state.step = "update_surname";
-      await bot.sendMessage(chatId, "Familiyangizni kiriting:");
+      return sendMessage(chatId, "Familiyangizni kiriting:");
+
     } else if (state.step === "update_surname") {
       state.surname = text;
       state.step = "update_phone";
-      await bot.sendMessage(chatId, "Telefon raqamingizni kiriting (masalan +998901234567):");
+      return sendMessage(chatId, "Telefon raqamingizni kiriting (masalan +998901234567):");
+
     } else if (state.step === "update_phone") {
       state.phone = text;
-
       const groupsSnapshot = await groupsCollection.get();
+
       if (groupsSnapshot.empty) {
-        await bot.sendMessage(chatId, "Hozircha guruhlar mavjud emas. Admin bilan bog'laning.");
         delete userStates[chatId];
-        return;
+        return sendMessage(chatId, "Hozircha guruhlar mavjud emas. Admin bilan bog'laning.");
       }
+
       const buttons = groupsSnapshot.docs.map(g => [{ text: g.data().name, callback_data: g.id }]);
-      await bot.sendMessage(chatId, "Iltimos, yangi guruhingizni tanlang:", { reply_markup: { inline_keyboard: buttons } });
-
       state.step = "update_group";
+      return sendMessage(chatId, "Iltimos, yangi guruhingizni tanlang:", { reply_markup: { inline_keyboard: buttons } });
     }
-  } catch (err) {
-    console.error(err);
-    bot.sendMessage(chatId, "Server xatosi yuz berdi.");
-  }
-});
-
-// Callback query
-bot.on("callback_query", async (query) => {
-  const chatId = query.message.chat.id;
-  const state = userStates[chatId];
-  if (!state) return;
-
-  try {
-    if (state.step === "ask_group") {
-      const groupId = query.data;
-      state.groupId = groupId;
-
-      await usersCollection.doc(chatId.toString()).set({
-        telegramId: chatId,
-        name: state.name,
-        surname: state.surname,
-        phone: state.phone,
-        groupId: state.groupId,
-        role: "moderator",
-        createdAt: new Date()
-      });
-
-      const groupName = await groupsCollection.doc(groupId).get().then(doc => doc.data().name);
-      await bot.sendMessage(chatId, `Rahmat, ${state.name} ${state.surname}! Siz ${groupName} guruhiga qo‘shildingiz.`);
-      delete userStates[chatId];
-    } else if (state.step === "update_group") {
-      const groupId = query.data;
-      state.groupId = groupId;
-
-      const snapshot = await usersCollection.where("telegramId", "==", chatId).get();
-      if (!snapshot.empty) {
-        const docId = snapshot.docs[0].id;
-        await usersCollection.doc(docId).update({
-          name: state.name,
-          surname: state.surname,
-          phone: state.phone,
-          groupId: groupId
-        });
-      }
-
-      const groupName = await groupsCollection.doc(groupId).get().then(doc => doc.data().name);
-      await bot.sendMessage(chatId, `Sizning ma’lumotlaringiz yangilandi va guruhingiz ${groupName} bo‘ldi.`);
-      delete userStates[chatId];
-    }
-
-    await bot.answerCallbackQuery(query.id);
 
   } catch (err) {
     console.error(err);
-    bot.sendMessage(chatId, "Server xatosi yuz berdi.");
+    sendMessage(chatId, "Server xatosi yuz berdi.");
   }
 });
 
