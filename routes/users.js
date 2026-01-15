@@ -3,16 +3,12 @@ const router = express.Router();
 const usersCollection = require("../models/User");
 const bot = require("../bot");
 
-// POST — user qo'shish (Telegram bot orqali)
+// POST — user qo‘shish (Telegram bot orqali)
 router.post("/", async (req, res) => {
   try {
     const { telegramId, username, name, phone, groupId } = req.body;
+    if (!telegramId || !name) return res.status(400).json({ error: "telegramId va name majburiy" });
 
-    if (!telegramId || !name) {
-      return res.status(400).json({ error: "telegramId va name majburiy" });
-    }
-
-    // Agar user allaqachon bo‘lsa, xabar yuborish
     const snapshot = await usersCollection.doc(String(telegramId)).get();
     if (snapshot.exists) return res.status(200).json({ message: "User already exists" });
 
@@ -21,12 +17,11 @@ router.post("/", async (req, res) => {
       username: username || null,
       name,
       phone: phone || null,
-      groupId: groupId || null, // keyin admin sayt orqali group bilan bog‘lanadi
+      groupId: groupId || null,
       role: "moderator",
       createdAt: new Date()
     });
 
-    // Telegramga xush kelibsiz xabari
     try {
       await bot.sendMessage(telegramId, `Salom, hurmatli ${name}! Siz ro‘yxatdan o‘tdingiz.`);
     } catch (err) {
@@ -57,7 +52,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-// PUT — admin tahriri (user info yangilash)
+// PUT — user info yangilash
 router.put("/:id", async (req, res) => {
   try {
     await usersCollection.doc(req.params.id).update(req.body);
@@ -66,6 +61,34 @@ router.put("/:id", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });
+  }
+});
+
+// DELETE — user o‘chirish va Telegram xabar
+router.delete("/:id", async (req, res) => {
+  try {
+    const docRef = usersCollection.doc(req.params.id);
+    const docSnap = await docRef.get();
+    if (!docSnap.exists) return res.status(404).json({ error: "User not found" });
+
+    const userData = docSnap.data();
+    await docRef.delete();
+
+    if (userData.telegramId) {
+      try {
+        await bot.sendMessage(
+          userData.telegramId,
+          `Hurmatli ${userData.name}, siz tizimdan o'chirildingiz. Qayta ro'yxatdan o'tish uchun /start ni bosing!`
+        );
+      } catch (err) {
+        console.error("Telegram notify failed:", err);
+      }
+    }
+
+    res.json({ success: true, message: "User deleted and notification sent" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to delete user or send notification" });
   }
 });
 

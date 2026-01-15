@@ -16,7 +16,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-// POST — admin sayt orqali group yaratadi
+// POST — group yaratish
 router.post("/", async (req, res) => {
   try {
     const { name } = req.body;
@@ -32,7 +32,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-// PUT — admin group nomini tahrirlashi mumkin
+// PUT — group tahrirlash + Telegram xabar
 router.put("/:id", async (req, res) => {
   try {
     const { name } = req.body;
@@ -40,7 +40,6 @@ router.put("/:id", async (req, res) => {
 
     await groupsCollection.doc(req.params.id).update({ name });
 
-    // Guruh nomi o‘zgarganda userlarga Telegram xabar
     const usersSnapshot = await usersCollection.where("groupId", "==", req.params.id).get();
     for (const doc of usersSnapshot.docs) {
       const user = doc.data();
@@ -53,6 +52,26 @@ router.put("/:id", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });
+  }
+});
+
+// DELETE — group o‘chirish + userlarni groupId null qilish
+router.delete("/:id", async (req, res) => {
+  try {
+    const docRef = groupsCollection.doc(req.params.id);
+    const docSnap = await docRef.get();
+    if (!docSnap.exists) return res.status(404).json({ error: "Group not found" });
+
+    const usersSnapshot = await usersCollection.where("groupId", "==", req.params.id).get();
+    for (const doc of usersSnapshot.docs) {
+      await doc.ref.update({ groupId: null });
+    }
+
+    await docRef.delete();
+    res.json({ success: true, message: "Group deleted successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to delete group" });
   }
 });
 
