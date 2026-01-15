@@ -7,12 +7,10 @@ const bot = require("../bot");
 // Attendance qo'shish / update va Telegram xabar yuborish
 router.post("/", async (req, res) => {
   try {
-    const { userId, groupId, status } = req.body;
+    const { userId, groupId, status, message } = req.body;
 
-    // Agar frontend “Send Message” tugmasi uchun kelsa:
-    // status maydoni bo‘lmasa, faqat xabar yubor
-    if (!status) {
-      const message = req.body.message;
+    // Agar frontend “Send Message” uchun kelgan bo‘lsa (status bo‘lmasa)
+    if (!status && message) {
       if (!userId || !message) return res.status(400).json({ error: "Missing fields" });
 
       const users = await User.find({ _id: { $in: Array.isArray(userId) ? userId : [userId] } });
@@ -40,8 +38,8 @@ router.post("/", async (req, res) => {
     // Telegram xabar yuborish
     const user = await User.findById(userId);
     if(user && user.telegramId) {
-      const message = `Siz bugun ${status === "present" ? "KELDINGIZ" : "KELMADINGIZ"} (${new Date().toLocaleDateString()})`;
-      bot.sendMessage(user.telegramId, message).catch(console.error);
+      const msg = `Siz bugun ${status === "present" ? "KELDINGIZ" : "KELMADINGIZ"} (${new Date().toLocaleDateString()})`;
+      bot.sendMessage(user.telegramId, msg).catch(console.error);
     }
 
     res.json({ message: "Attendance saved ✅", attendance });
