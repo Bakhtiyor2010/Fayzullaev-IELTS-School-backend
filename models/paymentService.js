@@ -29,12 +29,18 @@ async function deletePayment(userId) {
   await db.collection("payments").doc(userId).delete();
 }
 
+// 🔹 BU YERDA TIMESTAMP-LARNI DATE GA O‘ZGARTIRAMIZ
 async function getAllPayments() {
   const snap = await db.collection("payments").get();
   const payments = {};
 
   snap.forEach(doc => {
-    payments[doc.id] = doc.data();
+    const data = doc.data();
+    payments[doc.id] = {
+      ...data,
+      startDate: data.startDate ? data.startDate.toDate() : null,
+      endDate: data.endDate ? data.endDate.toDate() : null,
+    };
   });
 
   return payments;
