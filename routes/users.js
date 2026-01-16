@@ -23,7 +23,7 @@ router.post("/", async (req, res) => {
     });
 
     try {
-      await bot.sendMessage(telegramId, `Salom, hurmatli ${name}! Siz ro‘yxatdan o‘tdingiz.`);
+      await bot.sendMessage(telegramId, `Assalomu alaykum, hurmatli ${name}! Siz ro‘yxatdan o‘tdingiz.`);
     } catch (err) {
       console.error("Telegram xabar yuborishda xato:", err);
     }

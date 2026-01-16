@@ -30,7 +30,7 @@ bot.onText(/\/start/, async (msg) => {
   // Foydalanuvchi state boshlash
   userStates[chatId] = { step: "ask_name" };
 
-  await sendMessage(chatId, "Salom! Fayzullaev IELTS School botiga xush kelibsiz!");
+  await sendMessage(chatId, "Assalomu alaykum! Fayzullaev IELTS School botiga xush kelibsiz!");
   await sendMessage(chatId, "Iltimos, ismingizni kiriting:");
 });
 

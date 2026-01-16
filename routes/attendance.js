@@ -22,7 +22,7 @@ router.post("/", async (req, res) => {
       // 🔹 Xabarni yaratish
       let msg = message;
       if (!message && status) {
-        msg = `Salom, ${u.name || ""} ${u.surname || ""} bugun darsda ${
+        msg = `Assalomu alaykum, ${u.name || ""} ${u.surname || ""} bugun darsda ${
           status === "present" ? "QATNASHDI" : "QATNASHMADI"
         } (${new Date().toLocaleDateString("en-GB")})`;
       }

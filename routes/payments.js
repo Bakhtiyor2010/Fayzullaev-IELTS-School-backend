@@ -20,7 +20,7 @@ router.post("/paid", async (req, res) => {
 
     await bot.sendMessage(
       userId,
-      `Salom, hurmatli ${name || ""} ${surname || ""}!
+      `Assalomu alaykum, hurmatli ${name || ""} ${surname || ""}!
 To‘lov qabul qilindi.
 📅 ${startDate.toLocaleDateString()} dan ${endDate.toLocaleDateString()} gacha amal qiladi.`
     );
