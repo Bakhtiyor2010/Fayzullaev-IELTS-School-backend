@@ -19,9 +19,12 @@ router.post("/", async (req, res) => {
       const u = userDoc.data();
       if (!u.telegramId) continue;
 
+      // 🔹 Xabarni yaratish
       let msg = message;
       if (!message && status) {
-        msg = `Siz bugun ${status === "present" ? "KELDINGIZ" : "KELMADINGIZ"} (${new Date().toLocaleDateString()})`;
+        msg = `Salom, ${u.name || ""} ${u.surname || ""} bugun darsda ${
+          status === "present" ? "QATNASHDI" : "QATNASHMADI"
+        } (${new Date().toLocaleDateString("en-GB")})`;
       }
 
       bot.sendMessage(u.telegramId, msg).catch(console.error);
