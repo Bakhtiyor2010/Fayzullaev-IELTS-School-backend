@@ -5,47 +5,42 @@ const db = admin.firestore();
 const bot = require("../bot");
 
 router.post("/:telegramId", async (req, res) => {
-  const { telegramId } = req.params;
-
   try {
+    const { telegramId } = req.params;
+
+    // Pending userni olamiz
     const pendingRef = db.collection("users_pending").doc(telegramId);
     const snap = await pendingRef.get();
-
-    if (!snap.exists) {
-      return res.status(404).json({ message: "Pending user not found" });
-    }
+    if (!snap.exists) return res.status(404).json({ message: "Pending user not found" });
 
     const data = snap.data();
 
-    // 🔹 Firestore uchun undefined qiymatlarni tekshirish
-    const userData = {
-      telegramId: data.telegramId || "",
-      name: data.firstName || "—",
-      surname: data.lastName || "—",
+    // ✅ Users collection-ga qo‘shamiz
+    await db.collection("users").doc(telegramId).set({
+      telegramId: data.telegramId,
+      name: data.firstName || "Unknown",
+      surname: data.lastName || "",
       phone: data.phone || "",
+      username: data.username || "",
       groupId: data.selectedGroupId || "",
       status: "active",
       approvedAt: new Date(),
-    };
+    });
 
-    // ✅ users ga qo‘shish, undefined qiymatlar ignore qilinadi
-    await db.collection("users").doc(telegramId).set(userData, { ignoreUndefinedProperties: true });
-
-    // 🔹 Pending userni o‘chirish
+    // Pending dan o‘chiramiz
     await pendingRef.delete();
 
-    // 🔹 Telegram notify
+    // Telegram notify
     try {
       await bot.sendMessage(
         telegramId,
-        `Hurmatli ${userData.name}, siz guruhga qo‘shildingiz!`
+        `Hurmatli ${data.firstName || "Foydalanuvchi"}, siz guruhga qo‘shildingiz!`
       );
     } catch (err) {
       console.error("Telegram notify failed:", err);
     }
 
-    res.json({ message: "User approved successfully", user: userData });
-
+    res.json({ message: "User approved successfully" });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
