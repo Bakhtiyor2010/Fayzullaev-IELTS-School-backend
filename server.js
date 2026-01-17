@@ -1,7 +1,6 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-const cron = require("node-cron");
 
 // Routes
 const adminRoutes = require("./routes/admin");
@@ -9,9 +8,6 @@ const userRoutes = require("./routes/users");
 const groupRoutes = require("./routes/groups");
 const attendanceRoutes = require("./routes/attendance");
 const paymentRoutes = require("./routes/payments"); // ✅ QO‘SHILDI
-
-// Cron
-const clearExpiredPayments = require("./cron/clearExpiredPayments");
 
 const app = express();
 
@@ -37,9 +33,6 @@ app.use("/api/payments", paymentRoutes); // ✅ MUHIM
 
 // Test
 app.get("/", (req, res) => res.send("API working ✅"));
-
-// 🔁 CRON — har kuni 00:00 da
-cron.schedule("0 0 * * *", clearExpiredPayments);
 
 // Start
 const PORT = process.env.PORT || 5000;

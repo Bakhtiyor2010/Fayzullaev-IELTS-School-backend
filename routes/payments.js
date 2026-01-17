@@ -16,13 +16,13 @@ router.post("/paid", async (req, res) => {
     const { userId, name, surname } = req.body;
     if (!userId) return res.status(400).json({ error: "userId required" });
 
-    const { startDate } = await setPaid(userId);
+    const { paidAt } = await setPaid(userId);
 
-    await bot.sendMessage(
-      userId,
-      `Assalomu alaykum, hurmatli ${name || ""} ${surname || ""}!
-To‘lov qabul qilindi. (📅 ${formatDate(startDate)})`
-    );
+await bot.sendMessage(
+  userId,
+  `Assalomu alaykum, hurmatli ${name || ""} ${surname || ""}!
+To‘lov qabul qilindi. (📅 ${formatDate(paidAt)})`
+);
 
     res.json({ success: true });
   } catch (err) {

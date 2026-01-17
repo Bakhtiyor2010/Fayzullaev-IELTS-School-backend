@@ -64,55 +64,30 @@ bot.onText(/\/delete/, async (msg) => {
 
 // 🔹 /payment komandasi
 bot.onText(/\/payment/, async (msg) => {
-  const chatId = msg.chat.id;
+  const userId = msg.chat.id;
 
-  try {
-    const paymentDoc = await db
-      .collection("payments")
-      .doc(String(chatId))
-      .get();
+  const doc = await db.collection("payments").doc(String(userId)).get();
 
-    // 🔸 Hech qanday payment yo‘q
-    if (!paymentDoc.exists) {
-      return sendMessage(
-        chatId,
-        "ℹ️ To‘lov haqida ma’lumot topilmadi."
-      );
-    }
-
-    const payment = paymentDoc.data();
-
-    // 🔸 PAID
-    if (payment.status === "paid") {
-      const startDate = payment.startDate.toDate();
-      const endDate = payment.endDate.toDate();
-
-      return sendMessage(
-        chatId,
-        `✅ To‘lov qabul qilingan
-📅 ${startDate.toLocaleDateString()} dan ${endDate.toLocaleDateString()} gacha amal qiladi`
-      );
-    }
-
-    // 🔸 UNPAID
-    if (payment.status === "unpaid") {
-      return sendMessage(
-        chatId,
-        `❌ To‘lov amalga oshirilmagan
-Iltimos, to‘lovni tezroq amalga oshiring.`
-      );
-    }
-
-    // 🔸 fallback
-    return sendMessage(
-      chatId,
-      "ℹ️ To‘lov holati noma’lum."
+  if (!doc.exists) {
+    return bot.sendMessage(
+      userId,
+      "❌ Sizda faol to‘lov mavjud emas."
     );
-
-  } catch (err) {
-    console.error("Payment command error:", err);
-    sendMessage(chatId, "❌ Server xatosi yuz berdi.");
   }
+
+  const { paidAt } = doc.data();
+
+  const d = paidAt.toDate();
+  const date =
+    String(d.getDate()).padStart(2, "0") + "/" +
+    String(d.getMonth() + 1).padStart(2, "0") + "/" +
+    d.getFullYear();
+
+  await bot.sendMessage(
+    userId,
+    `✅ To‘lov qabul qilingan.
+📅 Sana: ${date}`
+  );
 });
 
 // 🔹 Callback query (inline buttons)
