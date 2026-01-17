@@ -4,13 +4,12 @@ const admin = require("firebase-admin");
 const db = admin.firestore();
 const bot = require("../bot");
 
-// POST — faqat pending users
+// POST — pending user qo‘shish
 router.post("/", async (req, res) => {
   try {
-    const { telegramId, username, name, surname, phone, selectedGroupId } = req.body;
-
-    if (!telegramId || !name) 
-      return res.status(400).json({ error: "telegramId va name majburiy" });
+    const { telegramId, firstName, lastName, phone, username, selectedGroupId } = req.body;
+    if (!telegramId || !firstName) 
+      return res.status(400).json({ error: "telegramId va firstName majburiy" });
 
     const approvedSnap = await db.collection("users").doc(String(telegramId)).get();
     if (approvedSnap.exists)
@@ -27,21 +26,22 @@ router.post("/", async (req, res) => {
     }
 
     await db.collection("users_pending").doc(String(telegramId)).set({
-      telegramId: Number(telegramId),
-      username: username || "",
-      firstName: name,
-      lastName: surname || "",
+      telegramId,
+      firstName,
+      lastName: lastName || "",
       phone: phone || "",
-      selectedGroupId: selectedGroupId || "",
+      username: username || "",
+      groupId: selectedGroupId || "",
       groupName,
       status: "pending",
-      createdAt: admin.firestore.Timestamp.now()
+      createdAt: new Date()
     });
 
+    // Telegram notify
     try {
       await bot.sendMessage(
         telegramId,
-        `Hurmatli ${name}, siz ro'yxatdan o'tdingiz. Admin tasdig‘ini kuting.`
+        `Hurmatli ${firstName}, siz ro'yxatdan o'tdingiz. Admin tasdig‘ini kuting.`
       );
     } catch (err) {
       console.error("Telegram notify failed:", err);
@@ -55,7 +55,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-// GET — approved users (admin)
+// GET — barcha approved users, guruh bo‘yicha filter
 router.get("/", async (req, res) => {
   try {
     const { groupId } = req.query;
@@ -64,7 +64,6 @@ router.get("/", async (req, res) => {
 
     const snapshot = await query.get();
     const users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
     res.json(users);
   } catch (err) {
     console.error(err);
@@ -72,7 +71,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-// PUT — user yangilash
+// PUT — user info yangilash
 router.put("/:id", async (req, res) => {
   try {
     await db.collection("users").doc(req.params.id).update(req.body);
@@ -98,7 +97,7 @@ router.delete("/:id", async (req, res) => {
       try {
         await bot.sendMessage(
           userData.telegramId,
-          `Hurmatli ${userData.name}, siz tizimdan o'chirildingiz. /start ni bosing.`
+          `Hurmatli ${userData.firstName}, siz tizimdan o'chirildingiz. Qayta ro'yxatdan o'tish uchun /start ni bosing!`
         );
       } catch (err) {
         console.error("Telegram notify failed:", err);

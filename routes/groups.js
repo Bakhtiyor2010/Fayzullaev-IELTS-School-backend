@@ -32,7 +32,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-// PUT — group nomini tahrirlash
+// PUT — group nomini tahrirlash va userlarga xabar
 router.put("/:id", async (req, res) => {
   try {
     const { name } = req.body;
@@ -40,12 +40,11 @@ router.put("/:id", async (req, res) => {
 
     await groupsCollection.doc(req.params.id).update({ name });
 
-    // Telegram xabari
     const usersSnapshot = await usersCollection.where("groupId", "==", req.params.id).get();
     for (const doc of usersSnapshot.docs) {
       const user = doc.data();
       if (user.telegramId) {
-        await bot.sendMessage(user.telegramId, `ℹ️ Sizning guruh nomingiz "${name}" ga o'zgartirildi.`);
+        await bot.sendMessage(user.telegramId, `ℹ️ Sizning guruh nomingiz "${name}" ga o'zgartirildi.`).catch(console.error);
       }
     }
 
@@ -56,36 +55,25 @@ router.put("/:id", async (req, res) => {
   }
 });
 
-// DELETE — guruhni o'chirish + userlarni o'chirish + xabar
+// DELETE — guruh + userlar + xabar
 router.delete("/:id", async (req, res) => {
   try {
     const groupId = req.params.id;
-
-    // 🔹 1️⃣ Guruhni o'chirish
     await groupsCollection.doc(groupId).delete();
 
-    // 🔹 2️⃣ Guruhga tegishli userlar
     const usersSnapshot = await usersCollection.where("groupId", "==", groupId).get();
-
-    const deletePromises = [];
+    const promises = [];
     for (const doc of usersSnapshot.docs) {
       const user = doc.data();
-
-      // Telegramga xabar yuborish (xatolikni frontendga bermaymiz)
       if (user.telegramId) {
-        deletePromises.push(
-          bot.sendMessage(user.telegramId, `⚠️ Hurmatli ${user.name}, sizning guruhingiz o‘chirildi va tizimdan olib tashlandingiz.`)
-            .catch(err => console.error("Notification failed:", err))
-        );
+        promises.push(bot.sendMessage(user.telegramId, `⚠️ Hurmatli ${user.firstName}, sizning guruhingiz o‘chirildi.`).catch(console.error));
       }
-
-      // Userni o'chirish
-      deletePromises.push(usersCollection.doc(doc.id).delete());
+      promises.push(usersCollection.doc(doc.id).delete());
     }
 
-    await Promise.all(deletePromises);
-
+    await Promise.all(promises);
     res.json({ message: "Group and its users deleted successfully" });
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to delete group and users" });
