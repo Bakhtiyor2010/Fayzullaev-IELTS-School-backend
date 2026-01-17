@@ -60,19 +60,23 @@ bot.on("callback_query", async (query) => {
     const groupDoc = await groupsCollection.doc(groupId).get();
     const groupName = groupDoc.exists ? groupDoc.data().name : "—";
 
+    if (!state.name || !state.surname || !state.phone) {
+      return sendMessage(chatId, "Iltimos, barcha ma'lumotlarni to‘liq kiriting.");
+    }
+
     if (state.step === "ask_group") {
       state.groupId = groupId;
 
-      // 🔹 Pending users ga saqlash
+      const pendingCollection = db.collection("users_pending");
       await pendingCollection.doc(String(chatId)).set({
         telegramId: chatId,
-        name: state.name,
-        surname: state.surname,
+        firstName: state.name,
+        lastName: state.surname,
         phone: state.phone,
         groupId,
-        groupName,            // <-- shu qo‘shildi
+        groupName,           // <- Shu qo‘shildi
         status: "pending",
-        createdAt: new Date()
+        createdAt: new Date(),
       });
 
       await sendMessage(chatId, `Rahmat, ${state.name} ${state.surname}! Admin tasdig'ini kuting.`);
@@ -80,19 +84,23 @@ bot.on("callback_query", async (query) => {
 
     } else if (state.step === "update_group") {
       state.groupId = groupId;
-      await usersCollection.doc(String(chatId)).update({
-        firstName: state.name,
-        lastName: state.surname,
-        phone: state.phone,
-        groupId
-      });
+      const snapshot = await usersCollection.where("telegramId", "==", chatId).get();
+      if (!snapshot.empty) {
+        const docId = snapshot.docs[0].id;
+        await usersCollection.doc(docId).update({
+          name: state.name,
+          surname: state.surname,
+          phone: state.phone,
+          groupId,
+          groupName,         // <- Shu qo‘shildi
+        });
+      }
 
       await sendMessage(chatId, `Sizning ma’lumotlaringiz yangilandi va guruhingiz ${groupName} bo‘ldi.`);
       delete userStates[chatId];
     }
 
     await bot.answerCallbackQuery(query.id);
-
   } catch (err) {
     console.error(err);
     sendMessage(chatId, "Server xatosi yuz berdi.");
