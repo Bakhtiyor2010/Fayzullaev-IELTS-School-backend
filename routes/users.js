@@ -22,22 +22,22 @@ router.post("/", async (req, res) => {
     let groupName = "";
     if (selectedGroupId) {
       const groupDoc = await db.collection("groups").doc(selectedGroupId).get();
-      groupName = groupDoc.exists ? groupDoc.data().name : "";
+      groupName = groupDoc.exists ? groupDoc.data().name : "—";
     }
 
-    await db.collection("users_pending").doc(String(telegramId)).set({
-      telegramId,
-      firstName,
-      lastName: lastName || "",
+    // ✅ Data mapping to‘g‘ri qilindi
+    await db.collection("users").doc(String(telegramId)).set({
+      telegramId: telegramId,
+      name: firstName || "",
+      surname: lastName || "",
       phone: phone || "",
       username: username || "",
       groupId: selectedGroupId || "",
-      groupName,
-      status: "pending",
-      createdAt: new Date()
+      groupName: groupName || "",
+      status: "active",
+      approvedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
-    // Telegram notify
     try {
       await bot.sendMessage(
         telegramId,
@@ -47,7 +47,7 @@ router.post("/", async (req, res) => {
       console.error("Telegram notify failed:", err);
     }
 
-    res.status(201).json({ message: "User added to pending approval" });
+    res.status(201).json({ message: "User added to users collection" });
 
   } catch (err) {
     console.error(err);
