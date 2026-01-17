@@ -117,7 +117,7 @@ bot.on("callback_query", async (query) => {
         createdAt: new Date()
       });
 
-      await sendMessage(chatId, `Rahmat, ${state.name} ${state.surname}! Siz ${groupName} guruhini tanladingiz. Admin tasdig'ini kuting.`);
+      await sendMessage(chatId, `Rahmat, ${state.name} ${state.surname}! Admin tasdig'ini kuting.`);
       delete userStates[chatId];
 
     } else if (state.step === "update_group") {

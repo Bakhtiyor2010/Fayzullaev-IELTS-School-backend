@@ -9,7 +9,7 @@ router.get("/", async (req, res) => {
     const snapshot = await db.collection("users_pending").get();
 
     const users = snapshot.docs.map(doc => ({
-      id: doc.id,
+      telegramId: doc.id,
       ...doc.data(),
     }));
 
