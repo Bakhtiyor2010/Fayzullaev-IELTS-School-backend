@@ -14,7 +14,7 @@ router.post("/", async (req, res) => {
     let sentCount = 0;
 
     for (const id of ids) {
-      // 🔹 Firestore query: doc id emas, telegramId bilan topish
+      // 🔹 doc() emas, telegramId bilan qidirish
       const userSnap = await usersCollection.where("telegramId", "==", id).get();
       if (userSnap.empty) continue;
 
@@ -38,7 +38,7 @@ Sana: ${new Date().toLocaleDateString("en-GB")}`;
       try {
         await bot.sendMessage(u.telegramId, msg);
       } catch (err) {
-        console.error(`Failed to send Telegram to ${u.telegramId}:`, err);
+        console.error(`Telegram error for ${u.telegramId}:`, err);
       }
 
       sentCount++;

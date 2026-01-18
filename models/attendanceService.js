@@ -3,13 +3,15 @@ const db = admin.firestore();
 
 // 🔹 Attendance qo‘shish
 async function addAttendance(userId, status, name, surname) {
-  if (!userId) throw new Error("Invalid userId");
-
-  const date = admin.firestore.FieldValue.serverTimestamp();
   const docRef = db.collection("attendance").doc(userId);
   const doc = await docRef.get();
 
-  const record = { status, name, surname, date };
+  const record = {
+    status,
+    name,
+    surname,
+    date: new Date() // serverTimestamp o‘rniga JS date
+  };
 
   if (doc.exists) {
     await docRef.update({
@@ -19,8 +21,7 @@ async function addAttendance(userId, status, name, surname) {
     await docRef.set({ history: [record] });
   }
 
-  // Server timestamp bilan frontend ishlashi uchun JS date qaytarish
-  return { date: new Date() };
+  return record;
 }
 
 // 🔹 Barcha attendancelarni olish
