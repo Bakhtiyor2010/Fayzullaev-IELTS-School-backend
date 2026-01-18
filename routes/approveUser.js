@@ -7,35 +7,45 @@ const bot = require("../bot");
 router.post("/:telegramId", async (req, res) => {
   try {
     const { telegramId } = req.params;
+
+    // pending user hujjatini olish
     const pendingRef = db.collection("users_pending").doc(telegramId);
     const snap = await pendingRef.get();
 
-    if (!snap.exists) return res.status(404).json({ message: "Pending user not found" });
+    if (!snap.exists) 
+      return res.status(404).json({ message: "Pending user not found" });
 
     const data = snap.data();
 
-    const groupId = data.selectedGroupId || "";  
-let groupName = "—";
-if (groupId) {
-  const groupDoc = await db.collection("groups").doc(groupId).get();
-  if (groupDoc.exists) groupName = groupDoc.data().name;
-}
+    // 1️⃣ groupId to‘g‘ri olish (stringga aylantirish)
+    const groupId = data.selectedGroupId ? String(data.selectedGroupId) : "";
 
-await db.collection("users").doc(telegramId).set({
-  telegramId: data.telegramId,
-  name: data.firstName || "",
-  surname: data.lastName || "",
-  phone: data.phone || "",
-  username: data.username || "",
-  groupId,
-  groupName,
-  status: "active",
-  approvedAt: admin.firestore.FieldValue.serverTimestamp(),
-});
+    // 2️⃣ groupName aniqlash
+    let groupName = "—";
+    if (groupId) {
+      const groupDoc = await db.collection("groups").doc(groupId).get();
+      if (groupDoc.exists && groupDoc.data().name) {
+        groupName = groupDoc.data().name;
+      }
+    }
 
-    // pending dan o‘chirish
+    // 3️⃣ users collection ga yozish (merge qilmasdan to‘liq yoziladi)
+    await db.collection("users").doc(telegramId).set({
+      telegramId: data.telegramId,
+      name: data.firstName || "",
+      surname: data.lastName || "",
+      phone: data.phone || "",
+      username: data.username || "",
+      groupId,
+      groupName,
+      status: "active",
+      approvedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    // 4️⃣ pending dan o‘chirish
     await pendingRef.delete();
 
+    // 5️⃣ Telegram notify
     try {
       await bot.sendMessage(telegramId, `Hurmatli ${data.firstName}, siz ${groupName} guruhiga qo‘shildingiz!`);
     } catch (err) {
