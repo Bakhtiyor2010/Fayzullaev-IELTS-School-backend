@@ -1,12 +1,9 @@
 const express = require("express");
 const router = express.Router();
-const usersCollection = require("../models/User");
+const usersCollection = require("../models/User"); // faqat tasdiqlangan userlar
 const { addAttendance, getAllAttendance } = require("../models/attendanceService");
 const bot = require("../bot");
-const admin = require("firebase-admin");
-const db = admin.firestore();
 
-// POST /api/attendance — mark attendance + bot xabar
 router.post("/", async (req, res) => {
   try {
     const { userId, status, message } = req.body;
@@ -22,17 +19,17 @@ router.post("/", async (req, res) => {
       const u = userDoc.data();
       if (!u.telegramId || u.status !== "active") continue;
 
-      // 🔹 Attendance history saqlash
+      // 🔹 Attendance qo'shish (Firestore history)
       if (status) {
-        await addAttendance(u.telegramId, status, u.name, u.surname);
+        await addAttendance(u.telegramId, status, u.name, u.surname); // telegramId bilan doc.id aralashmaydi
       }
 
       // 🔹 Telegram xabar
       let msg = message;
       if (!msg && status) {
-        msg = `Assalomu alaykum, ${u.name || ""} ${u.surname || ""}.\nBugun darsda ${
-          status === "present" ? "QATNASHDI" : "QATNASHMADI"
-        }.\nSana: ${new Date().toLocaleDateString("en-GB")}`;
+        msg = `Assalomu alaykum, hurmatli ${u.name || ""} ${u.surname || ""}.
+Bugun darsda ${status === "present" ? "QATNASHDI" : "QATNASHMADI"}.
+Sana: ${new Date().toLocaleDateString("en-GB")}`;
       }
 
       await bot.sendMessage(u.telegramId, msg);
@@ -46,7 +43,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-// GET /api/attendance — barcha attendance
+// GET /api/attendance
 router.get("/", async (req, res) => {
   try {
     const attendance = await getAllAttendance();
