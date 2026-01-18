@@ -1,10 +1,10 @@
 const express = require("express");
 const router = express.Router();
-const usersCollection = require("../models/User"); // Firestore users
+const usersCollection = require("../models/User"); // faqat TASDIQLANGAN userlar
 const { addAttendance, getAllAttendance } = require("../models/attendanceService");
 const bot = require("../bot");
 
-// POST /api/attendance
+// 🔹 Attendance + Telegram xabar
 router.post("/", async (req, res) => {
   try {
     const { userId, status, message } = req.body;
@@ -14,35 +14,35 @@ router.post("/", async (req, res) => {
     let sentCount = 0;
 
     for (const id of ids) {
-      const snap = await usersCollection.where("id", "==", id).limit(1).get();
-      if (snap.empty) continue;
+      const userDoc = await usersCollection.doc(String(id)).get();
+      if (!userDoc.exists) continue;
 
-      const doc = snap.docs[0];
-      const u = doc.data();
+      const u = userDoc.data();
       if (!u.telegramId || u.status !== "active") continue;
 
       // 🔹 Attendance qo‘shish
       if (status) {
-        await addAttendance(u.id, status, u.name, u.surname);
+        await addAttendance(u.telegramId, status, u.name, u.surname);
       }
 
       // 🔹 Telegram xabar
       let msg = message;
       if (!msg && status) {
-        msg = `Assalomu alaykum, hurmatli ${u.name || ""} ${u.surname || ""}!
-Bugun darsda ${status === "present" ? "QATNASHDI" : "QATNASHMADI"}.
-Sana: ${new Date().toLocaleDateString("en-GB")}`;
+        msg = `Assalomu alaykum, hurmatli ${u.name || ""} ${u.surname || ""}.\nBugun darsda ${
+          status === "present" ? "QATNASHDI" : "QATNASHMADI"
+        }.\nSana: ${new Date().toLocaleDateString("en-GB")}`;
       }
 
       try {
         await bot.sendMessage(u.telegramId, msg);
-        sentCount++;
       } catch (err) {
-        console.error(`Telegram xabar yuborilmadi: ${u.telegramId}`, err.message);
+        console.error("Telegram message failed for", u.telegramId, err);
       }
+
+      sentCount++;
     }
 
-    res.json({ message: "Attendance saved and messages sent ✅", sent: sentCount });
+    res.json({ message: "Messages sent ✅", sent: sentCount });
   } catch (err) {
     console.error("Attendance error:", err);
     res.status(500).json({ error: "Server error" });

@@ -3,16 +3,11 @@ const db = admin.firestore();
 
 // 🔹 Attendance qo‘shish
 async function addAttendance(userId, status, name, surname) {
-  const date = admin.firestore.FieldValue.serverTimestamp(); // Firestore timestamp
-  const docRef = db.collection("attendance").doc(String(userId));
+  const date = new Date(); // serverTimestamp o‘rniga JS Date
+  const docRef = db.collection("attendance").doc(userId);
   const doc = await docRef.get();
 
-  const record = {
-    status, // "present" yoki "absent"
-    name,
-    surname,
-    date,
-  };
+  const record = { status, name, surname, date };
 
   if (doc.exists) {
     await docRef.update({
@@ -24,7 +19,7 @@ async function addAttendance(userId, status, name, surname) {
     });
   }
 
-  return { date: new Date() }; // frontend uchun JS date
+  return { date };
 }
 
 // 🔹 Barcha attendancelarni olish
@@ -40,7 +35,7 @@ async function getAllAttendance() {
             status: h.status,
             name: h.name,
             surname: h.surname,
-            date: h.date ? h.date.toDate() : null,
+            date: h.date instanceof admin.firestore.Timestamp ? h.date.toDate() : h.date,
           }))
         : [],
     };
