@@ -22,10 +22,17 @@ bot.onText(/\/start/, async (msg) => {
   const chatId = msg.chat.id;
   try {
     const snapshot = await usersCollection.doc(String(chatId)).get();
-    if (snapshot.exists) return sendMessage(chatId, "Siz allaqachon ro‘yxatdan o‘tgan ekansiz. /update bilan yangilashingiz mumkin.");
+    if (snapshot.exists)
+      return sendMessage(
+        chatId,
+        "Siz allaqachon ro‘yxatdan o‘tgan ekansiz. /update bilan yangilashingiz mumkin.",
+      );
 
     userStates[chatId] = { step: "ask_name" };
-    await sendMessage(chatId, "Assalomu alaykum! Fayzullaev IELTS School botiga xush kelibsiz!");
+    await sendMessage(
+      chatId,
+      "Assalomu alaykum! Fayzullaev IELTS School botiga xush kelibsiz!",
+    );
     await sendMessage(chatId, "Iltimos, ismingizni kiriting:");
   } catch (err) {
     console.error(err);
@@ -38,7 +45,11 @@ bot.onText(/\/update/, async (msg) => {
   const chatId = msg.chat.id;
   try {
     const snapshot = await usersCollection.doc(String(chatId)).get();
-    if (!snapshot.exists) return sendMessage(chatId, "Siz hali ro‘yxatdan o‘tmagansiz. /start ni bosing.");
+    if (!snapshot.exists)
+      return sendMessage(
+        chatId,
+        "Siz hali ro‘yxatdan o‘tmagansiz. /start ni bosing.",
+      );
 
     userStates[chatId] = { step: "update_name" };
     await sendMessage(chatId, "Iltimos, yangi ismingizni kiriting:");
@@ -53,11 +64,15 @@ bot.onText(/\/delete/, async (msg) => {
   const chatId = msg.chat.id;
   try {
     const snapshot = await usersCollection.doc(String(chatId)).get();
-    if (!snapshot.exists) return sendMessage(chatId, "Siz hali ro‘yxatdan o‘tmagansiz.");
+    if (!snapshot.exists)
+      return sendMessage(chatId, "Siz hali ro‘yxatdan o‘tmagansiz.");
 
     await usersCollection.doc(String(chatId)).delete();
     delete userStates[chatId];
-    sendMessage(chatId, "Sizning ma’lumotlaringiz o‘chirildi. /start bilan qayta ro‘yxatdan o‘ting.");
+    sendMessage(
+      chatId,
+      "Sizning ma’lumotlaringiz o‘chirildi. /start bilan qayta ro‘yxatdan o‘ting.",
+    );
   } catch (err) {
     console.error(err);
     sendMessage(chatId, "Server xatosi yuz berdi.");
@@ -70,11 +85,15 @@ bot.onText(/\/payment/, async (msg) => {
   try {
     const userSnap = await usersCollection.doc(String(chatId)).get();
     if (!userSnap.exists) {
-      return sendMessage(chatId, "Siz hali ro‘yxatdan o‘tmagansiz. /start ni bosing.");
+      return sendMessage(
+        chatId,
+        "Siz hali ro‘yxatdan o‘tmagansiz. /start ni bosing.",
+      );
     }
 
     // Oxirgi to'lovni olish
-    const paymentsSnap = await db.collection("payments")
+    const paymentsSnap = await db
+      .collection("payments")
       .doc(String(chatId))
       .get();
 
@@ -83,9 +102,17 @@ bot.onText(/\/payment/, async (msg) => {
     }
 
     const payment = paymentsSnap.data();
-    const paymentDate = payment.paidAt?.toDate ? payment.paidAt.toDate() : payment.paidAt;
+    const paymentDate = payment.paidAt?.toDate
+      ? payment.paidAt.toDate()
+      : payment.paidAt;
 
-    sendMessage(chatId, `Oxirgi to‘lov qabul qilingan sana: ${paymentDate.toLocaleDateString()}`);
+    // DD/MM/YYYY formatida ko'rsatish
+    const formattedDate =
+      `${String(paymentDate.getDate()).padStart(2, "0")}/` +
+      `${String(paymentDate.getMonth() + 1).padStart(2, "0")}/` +
+      `${paymentDate.getFullYear()}`;
+
+    sendMessage(chatId, `Oxirgi to‘lov qabul qilingan sana: ${formattedDate}`);
   } catch (err) {
     console.error(err);
     sendMessage(chatId, "To‘lov ma’lumotlarini olishda xato yuz berdi.");
@@ -99,12 +126,15 @@ bot.on("callback_query", async (query) => {
   if (!state) return bot.answerCallbackQuery(query.id);
 
   try {
-const groupId = query.data;
-const groupDoc = await groupsCollection.doc(groupId).get();
-const groupName = groupDoc.exists ? groupDoc.data().name : "—";
+    const groupId = query.data;
+    const groupDoc = await groupsCollection.doc(groupId).get();
+    const groupName = groupDoc.exists ? groupDoc.data().name : "—";
 
     if (!state.name || !state.surname || !state.phone) {
-      return sendMessage(chatId, "Iltimos, barcha ma'lumotlarni to‘liq kiriting.");
+      return sendMessage(
+        chatId,
+        "Iltimos, barcha ma'lumotlarni to‘liq kiriting.",
+      );
     }
 
     if (state.step === "ask_group") {
@@ -115,18 +145,23 @@ const groupName = groupDoc.exists ? groupDoc.data().name : "—";
         firstName: state.name,
         lastName: state.surname,
         phone: state.phone,
-        groupId,      // callback query dan kelgan groupId
-        groupName,    // shu yerda groupName to‘g‘ri saqlanadi
+        groupId, // callback query dan kelgan groupId
+        groupName, // shu yerda groupName to‘g‘ri saqlanadi
         status: "pending",
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
       });
 
-      await sendMessage(chatId, `Rahmat, ${state.name} ${state.surname}! Admin tasdig'ini kuting.`);
+      await sendMessage(
+        chatId,
+        `Rahmat, ${state.name} ${state.surname}! Admin tasdig'ini kuting.`,
+      );
       delete userStates[chatId];
     }
 
     if (state.step === "update_group") {
-      const snapshot = await usersCollection.where("telegramId", "==", chatId).get();
+      const snapshot = await usersCollection
+        .where("telegramId", "==", chatId)
+        .get();
       if (!snapshot.empty) {
         const docId = snapshot.docs[0].id;
         await usersCollection.doc(docId).update({
@@ -137,7 +172,10 @@ const groupName = groupDoc.exists ? groupDoc.data().name : "—";
           groupName,
         });
       }
-      await sendMessage(chatId, `Sizning ma’lumotlaringiz yangilandi va guruhingiz ${groupName} bo‘ldi.`);
+      await sendMessage(
+        chatId,
+        `Sizning ma’lumotlaringiz yangilandi va guruhingiz ${groupName} bo‘ldi.`,
+      );
       delete userStates[chatId];
     }
 
@@ -164,17 +202,27 @@ bot.on("message", async (msg) => {
       case "ask_surname":
         state.surname = text;
         state.step = "ask_phone";
-        return sendMessage(chatId, "Telefon raqamingizni kiriting (masalan +998901234567 yoki 901234567):");
+        return sendMessage(
+          chatId,
+          "Telefon raqamingizni kiriting (masalan +998901234567 yoki 901234567):",
+        );
       case "ask_phone":
         state.phone = text;
         const groupsSnapshot = await groupsCollection.get();
         if (groupsSnapshot.empty) {
           delete userStates[chatId];
-          return sendMessage(chatId, "Hozircha guruhlar mavjud emas. Admin bilan bog'laning.");
+          return sendMessage(
+            chatId,
+            "Hozircha guruhlar mavjud emas. Admin bilan bog'laning.",
+          );
         }
-        const buttons = groupsSnapshot.docs.map(g => [{ text: g.data().name, callback_data: g.id }]);
+        const buttons = groupsSnapshot.docs.map((g) => [
+          { text: g.data().name, callback_data: g.id },
+        ]);
         state.step = "ask_group";
-        return sendMessage(chatId, "Iltimos, guruhingizni tanlang:", { reply_markup: { inline_keyboard: buttons } });
+        return sendMessage(chatId, "Iltimos, guruhingizni tanlang:", {
+          reply_markup: { inline_keyboard: buttons },
+        });
       case "update_name":
         state.name = text;
         state.step = "update_surname";
@@ -182,17 +230,27 @@ bot.on("message", async (msg) => {
       case "update_surname":
         state.surname = text;
         state.step = "update_phone";
-        return sendMessage(chatId, "Telefon raqamingizni kiriting (masalan +998901234567 yoki 901234567):");
+        return sendMessage(
+          chatId,
+          "Telefon raqamingizni kiriting (masalan +998901234567 yoki 901234567):",
+        );
       case "update_phone":
         state.phone = text;
         const groupsSnap = await groupsCollection.get();
         if (groupsSnap.empty) {
           delete userStates[chatId];
-          return sendMessage(chatId, "Hozircha guruhlar mavjud emas. Admin bilan bog'laning.");
+          return sendMessage(
+            chatId,
+            "Hozircha guruhlar mavjud emas. Admin bilan bog'laning.",
+          );
         }
-        const btns = groupsSnap.docs.map(g => [{ text: g.data().name, callback_data: g.id }]);
+        const btns = groupsSnap.docs.map((g) => [
+          { text: g.data().name, callback_data: g.id },
+        ]);
         state.step = "update_group";
-        return sendMessage(chatId, "Iltimos, yangi guruhingizni tanlang:", { reply_markup: { inline_keyboard: btns } });
+        return sendMessage(chatId, "Iltimos, yangi guruhingizni tanlang:", {
+          reply_markup: { inline_keyboard: btns },
+        });
     }
   } catch (err) {
     console.error("BOT ERROR:", err);
