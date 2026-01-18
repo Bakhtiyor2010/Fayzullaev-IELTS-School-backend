@@ -4,7 +4,7 @@ const usersCollection = require("../models/User"); // Firestore users
 const { addAttendance, getAllAttendance } = require("../models/attendanceService");
 const bot = require("../bot");
 
-// 🔹 Attendance + Telegram xabar
+// POST /api/attendance
 router.post("/", async (req, res) => {
   try {
     const { userId, status, message } = req.body;
@@ -14,7 +14,6 @@ router.post("/", async (req, res) => {
     let sentCount = 0;
 
     for (const id of ids) {
-      // 🔹 Firestore query orqali Telegram ID bo‘yicha topish
       const snap = await usersCollection.where("id", "==", id).limit(1).get();
       if (snap.empty) continue;
 
@@ -24,7 +23,7 @@ router.post("/", async (req, res) => {
 
       // 🔹 Attendance qo‘shish
       if (status) {
-        await addAttendance(u.telegramId, status, u.name, u.surname);
+        await addAttendance(u.id, status, u.name, u.surname);
       }
 
       // 🔹 Telegram xabar
