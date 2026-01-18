@@ -2,32 +2,26 @@ const admin = require("firebase-admin");
 const db = admin.firestore();
 
 // 🔹 Payment qo‘shish
-async function setPaid(userId, name = "", surname = "") {
+async function setPaid(userId, name, surname) {
+  if (!userId || !name || !surname) throw new Error("Missing userId, name, or surname");
+
   const paidAt = admin.firestore.FieldValue.serverTimestamp();
   const docRef = db.collection("payments").doc(userId);
+  const doc = await docRef.get();
 
-  try {
-    const doc = await docRef.get();
-
-    const record = { name, surname, paidAt };
-
-    if (doc.exists) {
-      await docRef.update({
-        paidAt,
-        history: admin.firestore.FieldValue.arrayUnion(record),
-      });
-    } else {
-      await docRef.set({
-        paidAt,
-        history: [record],
-      });
-    }
-
-    return { paidAt: new Date() };
-  } catch (err) {
-    console.error("setPaid ERROR:", err);
-    throw err;
+  if (doc.exists) {
+    await docRef.update({
+      paidAt,
+      history: admin.firestore.FieldValue.arrayUnion({ name, surname, paidAt }),
+    });
+  } else {
+    await docRef.set({
+      paidAt,
+      history: [{ name, surname, paidAt }],
+    });
   }
+
+  return { paidAt: new Date() };
 }
 
 // 🔹 To‘lovni o‘chirish
