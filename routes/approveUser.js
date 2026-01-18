@@ -8,20 +8,18 @@ router.post("/:telegramId", async (req, res) => {
   try {
     const { telegramId } = req.params;
 
-    // pending user hujjatini olish
+    // 1️⃣ Pending user hujjatini olish
     const pendingRef = db.collection("users_pending").doc(telegramId);
     const snap = await pendingRef.get();
-
-    if (!snap.exists) 
-      return res.status(404).json({ message: "Pending user not found" });
+    if (!snap.exists) return res.status(404).json({ message: "Pending user not found" });
 
     const data = snap.data();
 
-    // 1️⃣ groupId to‘g‘ri olish (stringga aylantirish)
+    // 2️⃣ groupId to‘g‘ri olish va stringga aylantirish
     const groupId = data.selectedGroupId ? String(data.selectedGroupId) : "";
 
-    // 2️⃣ groupName aniqlash
-    let groupName = "—";
+    // 3️⃣ groupName har doim groups collection dan olish
+    let groupName = "";
     if (groupId) {
       const groupDoc = await db.collection("groups").doc(groupId).get();
       if (groupDoc.exists && groupDoc.data().name) {
@@ -29,7 +27,7 @@ router.post("/:telegramId", async (req, res) => {
       }
     }
 
-    // 3️⃣ users collection ga yozish (merge qilmasdan to‘liq yoziladi)
+    // 4️⃣ Users collection ga yozish
     await db.collection("users").doc(telegramId).set({
       telegramId: data.telegramId,
       name: data.firstName || "",
@@ -42,12 +40,15 @@ router.post("/:telegramId", async (req, res) => {
       approvedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
-    // 4️⃣ pending dan o‘chirish
+    // 5️⃣ Pending dan o‘chirish
     await pendingRef.delete();
 
-    // 5️⃣ Telegram notify
+    // 6️⃣ Telegram notify
     try {
-      await bot.sendMessage(telegramId, `Hurmatli ${data.firstName}, siz ${groupName} guruhiga qo‘shildingiz!`);
+      await bot.sendMessage(
+        telegramId,
+        `Hurmatli ${data.firstName}, siz ${groupName || "guruh"} guruhiga qo‘shildingiz!`
+      );
     } catch (err) {
       console.error("Telegram notify failed:", err);
     }
