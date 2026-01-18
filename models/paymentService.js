@@ -3,45 +3,34 @@ const db = admin.firestore();
 
 // 🔹 Payment qo‘shish
 async function setPaid(userId, name, surname) {
-  if (!userId || !name || !surname) throw new Error("Missing userId, name, or surname");
+  if (!userId || !name || !surname)
+    throw new Error("userId, name and surname are required");
 
-  const paidAt = admin.firestore.FieldValue.serverTimestamp();
+  const paidAt = admin.firestore.Timestamp.now();
   const docRef = db.collection("payments").doc(userId);
   const doc = await docRef.get();
+
+  const record = { name, surname, paidAt };
 
   if (doc.exists) {
     await docRef.update({
       paidAt,
-      history: admin.firestore.FieldValue.arrayUnion({ name, surname, paidAt }),
+      history: admin.firestore.FieldValue.arrayUnion(record),
     });
   } else {
     await docRef.set({
       paidAt,
-      history: [{ name, surname, paidAt }],
+      history: [record],
     });
   }
 
-  return { paidAt: new Date() };
+  return { paidAt: paidAt.toDate() };
 }
 
 // 🔹 To‘lovni o‘chirish
 async function setUnpaid(userId) {
-  try {
-    await db.collection("payments").doc(userId).delete();
-  } catch (err) {
-    console.error("setUnpaid ERROR:", err);
-    throw err;
-  }
-}
-
-// 🔹 Payment o‘chirish
-async function deletePayment(userId) {
-  try {
-    await db.collection("payments").doc(userId).delete();
-  } catch (err) {
-    console.error("deletePayment ERROR:", err);
-    throw err;
-  }
+  if (!userId) throw new Error("userId required");
+  await db.collection("payments").doc(userId).delete();
 }
 
 // 🔹 Barcha paymentlarni olish
@@ -55,8 +44,8 @@ async function getAllPayments() {
       paidAt: data.paidAt ? data.paidAt.toDate() : null,
       history: data.history
         ? data.history.map((h) => ({
-            name: h.name || "",
-            surname: h.surname || "",
+            name: h.name,
+            surname: h.surname,
             paidAt: h.paidAt ? h.paidAt.toDate() : null,
           }))
         : [],
@@ -66,9 +55,4 @@ async function getAllPayments() {
   return payments;
 }
 
-module.exports = {
-  setPaid,
-  setUnpaid,
-  deletePayment,
-  getAllPayments,
-};
+module.exports = { setPaid, setUnpaid, getAllPayments };
