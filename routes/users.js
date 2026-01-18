@@ -7,15 +7,30 @@ const bot = require("../bot");
 // POST — pending user qo‘shish
 router.post("/", async (req, res) => {
   try {
-    const { telegramId, firstName, lastName, phone, username, selectedGroupId } = req.body;
-    if (!telegramId || !firstName) 
-      return res.status(400).json({ error: "telegramId va firstName majburiy" });
+    const {
+      telegramId,
+      firstName,
+      lastName,
+      phone,
+      username,
+      selectedGroupId,
+    } = req.body;
+    if (!telegramId || !firstName)
+      return res
+        .status(400)
+        .json({ error: "telegramId va firstName majburiy" });
 
-    const approvedSnap = await db.collection("users").doc(String(telegramId)).get();
+    const approvedSnap = await db
+      .collection("users")
+      .doc(String(telegramId))
+      .get();
     if (approvedSnap.exists)
       return res.status(200).json({ message: "User already approved" });
 
-    const pendingSnap = await db.collection("users_pending").doc(String(telegramId)).get();
+    const pendingSnap = await db
+      .collection("users_pending")
+      .doc(String(telegramId))
+      .get();
     if (pendingSnap.exists)
       return res.status(200).json({ message: "User already pending approval" });
 
@@ -26,29 +41,31 @@ router.post("/", async (req, res) => {
     }
 
     // ✅ Data mapping to‘g‘ri qilindi
-    await db.collection("users").doc(String(telegramId)).set({
-  telegramId: telegramId,
-  name: firstName || "",      // data.firstName → firstName
-  surname: lastName || "",    // data.lastName → lastName
-  phone: phone || "",
-  username: username || "",
-  groupId: selectedGroupId || "",
-  groupName: groupName || "",
-  status: "active",
-  approvedAt: admin.firestore.FieldValue.serverTimestamp(),
-});
+    await db
+      .collection("users")
+      .doc(String(telegramId))
+      .set({
+        telegramId: telegramId,
+        name: firstName || "", // data.firstName → firstName
+        surname: lastName || "", // data.lastName → lastName
+        phone: phone || "",
+        username: username || "",
+        groupId: selectedGroupId || "",
+        groupName: groupName || "",
+        status: "active",
+        approvedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
 
     try {
       await bot.sendMessage(
         telegramId,
-        `Hurmatli ${firstName}, siz ro'yxatdan o'tdingiz. Admin tasdig‘ini kuting.`
+        `Hurmatli ${firstName}, siz ro'yxatdan o'tdingiz. Admin tasdig‘ini kuting.`,
       );
     } catch (err) {
       console.error("Telegram notify failed:", err);
     }
 
     res.status(201).json({ message: "User added to users collection" });
-
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });
@@ -63,7 +80,7 @@ router.get("/", async (req, res) => {
     if (groupId) query = query.where("groupId", "==", groupId);
 
     const snapshot = await query.get();
-    const users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const users = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
     res.json(users);
   } catch (err) {
     console.error(err);
@@ -84,6 +101,8 @@ router.put("/:id", async (req, res) => {
 });
 
 // DELETE — user o‘chirish va Telegram xabar
+const usersCollection = db.collection("users");
+
 router.delete("/:userId", async (req, res) => {
   const { userId } = req.params;
   if (!userId) return res.status(400).json({ error: "userId required" });
@@ -92,39 +111,34 @@ router.delete("/:userId", async (req, res) => {
     const userRef = usersCollection.doc(String(userId));
     const userDoc = await userRef.get();
 
-    if (!userDoc.exists) {
+    if (!userDoc.exists)
       return res.status(404).json({ error: "User not found" });
-    }
 
-    const userData = userDoc.data();
-    const name = userData.name || "";
-    const surname = userData.surname || "";
+    const { name = "", surname = "" } = userDoc.data();
 
-    // Payment delete
+    // Payment o'chirish
     const paymentRef = db.collection("payments").doc(String(userId));
     const paymentDoc = await paymentRef.get();
     if (paymentDoc.exists) await paymentRef.delete();
 
-    // User delete
+    // User o'chirish
     await userRef.delete();
 
-    // Botga xabar alohida try/catch ichida
+    // Telegram xabar alohida try/catch
     try {
       await bot.sendMessage(
         userId,
-        `Hurmatli ${name} ${surname}, siz tizimdan o'chirildingiz. Qayta ro'yxatdan o'tish uchun /start ni bosing!`
+        `Hurmatli ${name} ${surname}, siz tizimdan o'chirildingiz. Qayta ro'yxatdan o'tish uchun /start ni bosing!`,
       );
     } catch (botErr) {
       console.error("Bot xabari yuborilmadi:", botErr);
     }
 
     return res.json({ success: true });
-
   } catch (err) {
     console.error("DELETE USER ERROR:", err);
     return res.status(500).json({ error: "Delete failed" });
   }
 });
-
 
 module.exports = router;
