@@ -89,26 +89,34 @@ router.delete("/:userId", async (req, res) => {
     const { userId } = req.params;
     if (!userId) return res.status(400).json({ error: "userId required" });
 
-    // Foydalanuvchi ma'lumotini olish
-    const userDoc = await usersCollection.doc(String(userId)).get();
-    const userData = userDoc.exists ? userDoc.data() : {};
+    // 1️⃣ Foydalanuvchi documentini olish
+    const userRef = usersCollection.doc(String(userId));
+    const userDoc = await userRef.get();
+
+    if (!userDoc.exists) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const userData = userDoc.data();
     const name = userData.name || "";
     const surname = userData.surname || "";
 
-    // Payment delete
-    await deletePayment(userId);
+    // 2️⃣ Payment delete
+    const paymentRef = db.collection("payments").doc(String(userId));
+    const paymentDoc = await paymentRef.get();
+    if (paymentDoc.exists) await paymentRef.delete();
 
-    // User delete
-    if (userDoc.exists) {
-      await usersCollection.doc(String(userId)).delete();
-    }
+    // 3️⃣ User delete
+    await userRef.delete();
 
-    // Botga xabar
-    if (bot) {
+    // 4️⃣ Botga xabar
+    try {
       await bot.sendMessage(
         userId,
         `Hurmatli ${name} ${surname}, siz tizimdan o'chirildingiz. Qayta ro'yxatdan o'tish uchun /start ni bosing!`
       );
+    } catch (botErr) {
+      console.error("Bot xabari yuborilmadi:", botErr);
     }
 
     res.json({ success: true });
