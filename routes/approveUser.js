@@ -15,19 +15,15 @@ router.post("/:telegramId", async (req, res) => {
 
     const data = snap.data();
 
-    // 2️⃣ groupId to‘g‘ri olish va stringga aylantirish
-    const groupId = data.selectedGroupId ? String(data.selectedGroupId) : "";
+    // 2️⃣ groupId va groupName ni pending_users dan olish
+    const groupId = data.selectedGroupId;
+    const groupName = data.groupName;
 
-    // 3️⃣ groupName har doim groups collection dan olish
-    let groupName = "";
-    if (groupId) {
-      const groupDoc = await db.collection("groups").doc(groupId).get();
-      if (groupDoc.exists && groupDoc.data().name) {
-        groupName = groupDoc.data().name;
-      }
+    if (!groupId || !groupName) {
+      return res.status(400).json({ message: "Pending user da groupId yoki groupName mavjud emas" });
     }
 
-    // 4️⃣ Users collection ga yozish
+    // 3️⃣ users collection ga yozish
     await db.collection("users").doc(telegramId).set({
       telegramId: data.telegramId,
       name: data.firstName || "",
@@ -40,14 +36,14 @@ router.post("/:telegramId", async (req, res) => {
       approvedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
-    // 5️⃣ Pending dan o‘chirish
+    // 4️⃣ Pending dan o‘chirish
     await pendingRef.delete();
 
-    // 6️⃣ Telegram notify
+    // 5️⃣ Telegram notify
     try {
       await bot.sendMessage(
         telegramId,
-        `Hurmatli ${data.firstName}, siz ${groupName || "guruh"} guruhiga qo‘shildingiz!`
+        `Hurmatli ${data.firstName}, siz ${groupName} guruhiga qo‘shildingiz!`
       );
     } catch (err) {
       console.error("Telegram notify failed:", err);
@@ -57,7 +53,7 @@ router.post("/:telegramId", async (req, res) => {
 
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Server error" });
+    res.status(500).json({ error: err.message || "Server error" });
   }
 });
 

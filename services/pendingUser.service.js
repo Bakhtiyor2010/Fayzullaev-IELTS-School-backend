@@ -10,26 +10,36 @@ async function createPendingUser(userData) {
     throw new Error("telegramId va firstName majburiy");
   }
 
-  // 🔹 groupName olish
+  // 🔹 selectedGroupId majburiy qilamiz
+  if (!userData.selectedGroupId) {
+    throw new Error("selectedGroupId majburiy");
+  }
+
+  const groupId = String(userData.selectedGroupId); // stringga aylantiramiz
+
+  // 🔹 groupName groups collection dan olish
   let groupName = "";
-  if (userData.selectedGroupId) {
-    const groupDoc = await db.collection("groups").doc(userData.selectedGroupId).get();
-    groupName = groupDoc.exists ? groupDoc.data().name : "";
+  const groupDoc = await db.collection("groups").doc(groupId).get();
+  if (groupDoc.exists && groupDoc.data().name) {
+    groupName = groupDoc.data().name;
+  } else {
+    throw new Error("Group topilmadi");
   }
 
   const ref = db.collection("users_pending").doc(String(userData.telegramId));
-
   await ref.set({
     telegramId: userData.telegramId,
-    firstName: userData.firstName || "",
+    firstName: userData.firstName,
     lastName: userData.lastName || "",
     phone: userData.phone || "",
     username: userData.username || "",
-    selectedGroupId: userData.selectedGroupId || "",
-    groupName,          // 🔹 groupName qo‘shildi
+    selectedGroupId: groupId,
+    groupName,          // to‘g‘ri groupName
     status: "pending",
     createdAt: new Date(),
   });
+
+  return { telegramId: userData.telegramId, groupId, groupName };
 }
 
 module.exports = { createPendingUser };
