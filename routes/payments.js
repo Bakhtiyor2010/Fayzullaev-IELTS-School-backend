@@ -6,7 +6,6 @@ const {
   deletePayment,
   getAllPayments,
 } = require("../models/paymentService");
-
 const bot = require("../bot");
 
 // 🔹 PAID
@@ -14,15 +13,22 @@ router.post("/paid", async (req, res) => {
   try {
     const { userId, name, surname } = req.body;
     if (!userId) return res.status(400).json({ error: "userId required" });
-    if (!name || !surname) return res.status(400).json({ error: "name and surname required" });
+    if (!name || !surname)
+      return res.status(400).json({ error: "name and surname required" });
 
-    const { paidAt } = await setPaid(userId, name, surname); // ⚠ name va surname qo‘shildi
+    const { paidAt } = await setPaid(userId, name, surname);
 
-    await bot.sendMessage(
-      userId,
-      `Assalomu alaykum, hurmatli ${name || ""} ${surname || ""}!
-      To‘lov qabul qilindi. (📅 ${formatDate(paidAt)})`
-    );
+    // 🔹 Telegram xabar
+    try {
+      await bot.sendMessage(
+        userId,
+        `Assalomu alaykum, hurmatli ${name} ${surname}!\nTo‘lov qabul qilindi. (📅 ${formatDate(
+          paidAt
+        )})`
+      );
+    } catch (err) {
+      console.error("Bot message ERROR:", err);
+    }
 
     res.json({ success: true, paidAt });
   } catch (err) {
@@ -30,14 +36,6 @@ router.post("/paid", async (req, res) => {
     res.status(500).json({ error: "Paid failed" });
   }
 });
-
-function formatDate(date) {
-  const d = new Date(date);
-  const day = String(d.getDate()).padStart(2, "0");
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const year = d.getFullYear();
-  return `${day}/${month}/${year}`;
-}
 
 // 🔹 UNPAID
 router.post("/unpaid", async (req, res) => {
@@ -47,15 +45,18 @@ router.post("/unpaid", async (req, res) => {
 
     await setUnpaid(userId);
 
-    // 🔹 Telegram xabar
-    await bot.sendMessage(
-      userId,
-      `Hurmatli ${name || ""} ${surname || ""}!\nIltimos, to‘lovni tezroq amalga oshiring.`
-    );
+    try {
+      await bot.sendMessage(
+        userId,
+        `Hurmatli ${name || ""} ${surname || ""}!\nIltimos, to‘lovni tezroq amalga oshiring.`
+      );
+    } catch (err) {
+      console.error("Bot message ERROR:", err);
+    }
 
     res.json({ success: true });
   } catch (err) {
-    console.error(err);
+    console.error("UNPAID ERROR:", err);
     res.status(500).json({ error: "Unpaid failed" });
   }
 });
@@ -66,14 +67,18 @@ router.delete("/:userId", async (req, res) => {
     const { userId } = req.params;
     await deletePayment(userId);
 
-    await bot.sendMessage(
-      userId,
-      `Hurmatli foydalanuvchi!\nTo‘lov tarixingiz o‘chirildi.`
-    );
+    try {
+      await bot.sendMessage(
+        userId,
+        `Hurmatli foydalanuvchi!\nTo‘lov tarixingiz o‘chirildi.`
+      );
+    } catch (err) {
+      console.error("Bot message ERROR:", err);
+    }
 
     res.json({ success: true });
   } catch (err) {
-    console.error(err);
+    console.error("DELETE ERROR:", err);
     res.status(500).json({ error: "Delete failed" });
   }
 });
@@ -84,9 +89,17 @@ router.get("/", async (req, res) => {
     const payments = await getAllPayments();
     res.json(payments);
   } catch (err) {
-    console.error(err);
+    console.error("GET ERROR:", err);
     res.status(500).json({ error: "Failed to load payments" });
   }
 });
+
+function formatDate(date) {
+  const d = new Date(date);
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const year = d.getFullYear();
+  return `${day}/${month}/${year}`;
+}
 
 module.exports = router;
