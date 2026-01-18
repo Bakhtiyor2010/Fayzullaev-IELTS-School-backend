@@ -15,14 +15,25 @@ router.post("/", async (req, res) => {
 
     for (const id of ids) {
       const userDoc = await usersCollection.doc(String(id)).get();
-      if (!userDoc.exists) continue;
+      if (!userDoc.exists) {
+        console.log("User not found for ID:", id);
+        continue;
+      }
 
       const u = userDoc.data();
-      if (!u.telegramId || u.status !== "active") continue;
+      if (!u.telegramId || u.status !== "active") {
+        console.log("Inactive user or no telegramId:", u);
+        continue;
+      }
 
-      // 🔹 Attendance qo‘shish (userId bo‘yicha)
+      // 🔹 Attendance qo‘shish
       if (status) {
-        await addAttendance(u.id, status, u.name, u.surname);
+        console.log("Adding attendance for:", u.id, status);
+        try {
+          await addAttendance(u.id, status, u.name, u.surname);
+        } catch (err) {
+          console.error("Failed to add attendance for", u.id, err);
+        }
       }
 
       // 🔹 Telegram xabar
@@ -44,8 +55,8 @@ router.post("/", async (req, res) => {
 
     res.json({ message: "Messages sent ✅", sent: sentCount });
   } catch (err) {
-    console.error("Attendance error:", err);
-    res.status(500).json({ error: "Server error" });
+    console.error("Attendance route error:", err);
+    res.status(500).json({ error: "Server error", details: err.message });
   }
 });
 
