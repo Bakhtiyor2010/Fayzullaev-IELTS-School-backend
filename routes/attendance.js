@@ -4,6 +4,7 @@ const usersCollection = require("../models/User"); // faqat tasdiqlangan userlar
 const { addAttendance, getAllAttendance } = require("../models/attendanceService");
 const bot = require("../bot");
 
+// Attendance / Telegram xabar yuborish
 router.post("/", async (req, res) => {
   try {
     const { userId, status, message } = req.body;
@@ -19,9 +20,9 @@ router.post("/", async (req, res) => {
       const u = userDoc.data();
       if (!u.telegramId || u.status !== "active") continue;
 
-      // 🔹 Attendance qo'shish (Firestore history)
+      // 🔹 Attendance qo‘shish
       if (status) {
-        await addAttendance(u.telegramId, status, u.name, u.surname); // telegramId bilan doc.id aralashmaydi
+        await addAttendance(u.telegramId, status, u.name, u.surname);
       }
 
       // 🔹 Telegram xabar
@@ -42,6 +43,7 @@ Sana: ${new Date().toLocaleDateString("en-GB")}`;
     res.status(500).json({ error: "Server error" });
   }
 });
+
 
 // GET /api/attendance
 router.get("/", async (req, res) => {
