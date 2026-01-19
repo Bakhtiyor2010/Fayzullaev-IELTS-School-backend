@@ -63,10 +63,17 @@ router.delete("/:id", async (req, res) => {
 
     const usersSnapshot = await usersCollection.where("groupId", "==", groupId).get();
     const promises = [];
+
     for (const doc of usersSnapshot.docs) {
       const user = doc.data();
+      const userName = user.name || "-";  // 🔹 name mavjud bo‘lmasa "-"
       if (user.telegramId) {
-        promises.push(bot.sendMessage(user.telegramId, `⚠️ Hurmatli ${user.firstName}, sizning guruhingiz o‘chirildi.`).catch(console.error));
+        promises.push(
+          bot.sendMessage(
+            user.telegramId,
+            `⚠️ Hurmatli ${userName}, sizning guruhingiz o‘chirildi.`
+          ).catch(console.error)
+        );
       }
       promises.push(usersCollection.doc(doc.id).delete());
     }
