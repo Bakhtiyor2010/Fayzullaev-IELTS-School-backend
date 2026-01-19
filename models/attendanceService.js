@@ -1,48 +1,38 @@
 const admin = require("firebase-admin");
 const db = admin.firestore();
 
-// 🔹 Attendance qo‘shish
+// 🔹 Attendance qo‘shish (bugungi sana uchun oxirgi holat saqlanadi)
 async function addAttendance(telegramId, status, name, surname) {
-  if (!telegramId || !status) {
-    throw new Error("Invalid attendance data");
-  }
+  if (!telegramId || !status) throw new Error("Invalid attendance data");
 
-  // 🔑 BUGUNGI SANA (faqat kun)
   const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
 
   const docRef = db.collection("attendance").doc(String(telegramId));
   const doc = await docRef.get();
 
   let history = [];
+  if (doc.exists && Array.isArray(doc.data().history)) history = doc.data().history;
 
-  if (doc.exists && Array.isArray(doc.data().history)) {
-    history = doc.data().history;
-  }
-
+  // 🔹 Bugungi sana mavjudmi tekshirish
   const todayIndex = history.findIndex(h => h.day === today);
 
   const record = {
-    day: today,              // 🔑 unique key
+    day: today,                // kun bo‘yicha unique
     status,
     name: name || "",
     surname: surname || "",
-    updatedAt: admin.firestore.Timestamp.now(),
+    updatedAt: admin.firestore.Timestamp.now(), // sana
   };
 
-  if (todayIndex !== -1) {
-    // 🔄 BUGUN BOR → UPDATE
-    history[todayIndex] = record;
-  } else {
-    // ➕ BUGUN YO‘Q → PUSH
-    history.push(record);
-  }
+  if (todayIndex !== -1) history[todayIndex] = record; // mavjud bo‘lsa update
+  else history.push(record);                             // yo‘q bo‘lsa push
 
   await docRef.set({ history }, { merge: true });
 
   return record;
 }
 
-// 🔹 Barcha attendancelarni olish
+// 🔹 Barcha attendancelarni olish (frontend bilan mos)
 async function getAllAttendance() {
   const snap = await db.collection("attendance").get();
   const result = [];
@@ -57,7 +47,9 @@ async function getAllAttendance() {
         name: h.name,
         surname: h.surname,
         status: h.status,
-        date: h.date.toDate(),
+        date: h.updatedAt instanceof admin.firestore.Timestamp
+          ? h.updatedAt.toDate()
+          : new Date(h.updatedAt),
       });
     });
   });
@@ -65,20 +57,22 @@ async function getAllAttendance() {
   return result;
 }
 
-// 🔹 Bitta foydalanuvchi uchun attendance history olish
+// 🔹 Bitta foydalanuvchi uchun history olish
 async function getUserAttendance(userId) {
   if (!userId) return [];
   const docRef = db.collection("attendance").doc(userId);
   const doc = await docRef.get();
   if (!doc.exists) return [];
-  
+
   const data = doc.data();
   return data.history
     ? data.history.map(h => ({
         status: h.status,
         name: h.name,
         surname: h.surname,
-        date: h.date instanceof admin.firestore.Timestamp ? h.date.toDate() : new Date(h.date)
+        date: h.updatedAt instanceof admin.firestore.Timestamp
+          ? h.updatedAt.toDate()
+          : new Date(h.updatedAt),
       }))
     : [];
 }
@@ -86,5 +80,5 @@ async function getUserAttendance(userId) {
 module.exports = {
   addAttendance,
   getAllAttendance,
-  getUserAttendance, // yangi qo‘shildi
+  getUserAttendance,
 };
