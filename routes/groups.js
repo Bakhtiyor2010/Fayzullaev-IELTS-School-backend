@@ -51,7 +51,7 @@ router.put("/:id", async (req, res) => {
             user.telegramId,
             `ℹ️ Sizning guruh nomingiz "${name}" ga o'zgartirildi.
           
-          ℹ️ Название вашей группы было изменено на "${name}".`,
+ℹ️ Название вашей группы было изменено на "${name}".`,
           )
           .catch(console.error);
       }
@@ -85,7 +85,7 @@ router.delete("/:id", async (req, res) => {
               user.telegramId,
               `⚠️ Hurmatli ${userName}, sizning guruhingiz o‘chirildi.
             
-            ⚠️ Уважаемый(ая) ${userName}, ваша группа была удалена.`,
+⚠️ Уважаемый(ая) ${userName}, ваша группа была удалена.`,
             )
             .catch(console.error),
         );

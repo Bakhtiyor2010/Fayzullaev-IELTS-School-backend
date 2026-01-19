@@ -53,7 +53,7 @@ router.post("/:telegramId", async (req, res) => {
         telegramId,
         `Hurmatli ${data.firstName}, siz ${groupName} guruhiga qo‘shildingiz!
         
-        Уважаемый(ая) ${data.firstName}, вы были добавлены в группу ${groupName}!`,
+Уважаемый(ая) ${data.firstName}, вы были добавлены в группу ${groupName}!`,
       );
     } catch (err) {
       console.error("Telegram notify failed:", err);

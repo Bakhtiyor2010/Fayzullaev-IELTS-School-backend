@@ -21,7 +21,7 @@ router.delete("/:telegramId", async (req, res) => {
       telegramId,
       `Hurmatli ${data.firstName}, sizning ro'yxatdan o'tishingiz rad etildi.
       
-      Уважаемый(ая) ${data.firstName}, ваша регистрация была отклонена.`,
+Уважаемый(ая) ${data.firstName}, ваша регистрация была отклонена.`,
     );
   } catch (err) {
     console.error("Telegram notify failed:", err);

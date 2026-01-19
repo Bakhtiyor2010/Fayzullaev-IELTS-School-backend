@@ -28,7 +28,7 @@ router.post("/paid", async (req, res) => {
         userId,
         `Assalomu alaykum, hurmatli ${name} ${surname}!\n${monthName} oyi kurs to‘lovi qabul qilindi (📅 ${formatDate(paidAt)})
         
-        Здравствуйте, уважаемый(ая) ${name} ${surname}!\nОплата курса за ${russianMonthName} принята (📅 ${formatDate(paidAt)})`,
+Здравствуйте, уважаемый(ая) ${name} ${surname}!\nОплата курса за ${russianMonthName} принята (📅 ${formatDate(paidAt)})`,
       );
     }
 
@@ -93,7 +93,7 @@ router.post("/unpaid", async (req, res) => {
         userId,
         `Hurmatli ${name || ""} ${surname || ""}!\nIltimos, to‘lovni tezroq amalga oshiring.
         
-        Уважаемый(ая) ${name || ""} ${surname || ""}!\nПожалуйста, произведите оплату как можно скорее.`,
+Уважаемый(ая) ${name || ""} ${surname || ""}!\nПожалуйста, произведите оплату как можно скорее.`,
       );
     }
 
@@ -118,7 +118,7 @@ router.delete("/:userId", async (req, res) => {
         userId,
         `Hurmatli ${name || ""} ${surname || ""}!\nTo‘lov tarixingiz o‘chirildi.
         
-        Уважаемый(ая) ${name || ""} ${surname || ""}!\nВаша история платежей была удалена.`,
+Уважаемый(ая) ${name || ""} ${surname || ""}!\nВаша история платежей была удалена.`,
       );
     }
 

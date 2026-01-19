@@ -137,7 +137,7 @@ bot.onText(/\/payment/, async (msg) => {
       chatId,
       `Oxirgi to‘lov qabul qilingan sana: ${formattedDate}
       
-      Дата последней принятой оплаты: ${formattedDate}`,
+Дата последней принятой оплаты: ${formattedDate}`,
     );
   } catch (err) {
     console.error(err);
@@ -184,7 +184,7 @@ bot.on("callback_query", async (query) => {
         chatId,
         `Rahmat, ${state.name} ${state.surname}! Admin tasdig'ini kuting.
         
-        Спасибо, ${state.name} ${state.surname}! Дождитесь подтверждения от администратора.`,
+Спасибо, ${state.name} ${state.surname}! Дождитесь подтверждения от администратора.`,
       );
       delete userStates[chatId];
     }
@@ -207,7 +207,7 @@ bot.on("callback_query", async (query) => {
         chatId,
         `Sizning ma’lumotlaringiz yangilandi va guruhingiz ${groupName} bo‘ldi.
         
-        Ваши данные были обновлены, и ваша группа теперь ${groupName}.`,
+Ваши данные были обновлены, и ваша группа теперь ${groupName}.`,
       );
       delete userStates[chatId];
     }
