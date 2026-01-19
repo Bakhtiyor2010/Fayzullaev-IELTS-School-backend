@@ -2,55 +2,56 @@ const admin = require("firebase-admin");
 const db = admin.firestore();
 
 // 🔹 Attendance qo‘shish
-async function addAttendance(userId, status, name, surname) {
-  if (!userId) throw new Error("Invalid userId");
+async function addAttendance(telegramId, status, name, surname) {
+  if (!telegramId) throw new Error("Invalid telegramId");
 
-  const date = admin.firestore.Timestamp.now(); // Firestore Timestamp
-  const docRef = db.collection("attendance").doc(userId);
+  const timestamp = admin.firestore.Timestamp.now();
 
-  const record = { status, name, surname, date };
+  const record = {
+    status,
+    name,
+    surname,
+    date: timestamp,
+  };
 
-  try {
-    const doc = await docRef.get();
-    if (doc.exists) {
-      await docRef.update({
-        history: admin.firestore.FieldValue.arrayUnion(record),
-      });
-    } else {
-      await docRef.set({
-        history: [record],
-      });
-    }
-    return { date: date.toDate() }; // JS Date
-  } catch (err) {
-    console.error("Firestore error in addAttendance:", err);
-    throw err;
+  const docRef = db.collection("attendance").doc(String(telegramId));
+
+  const doc = await docRef.get();
+
+  if (doc.exists) {
+    await docRef.update({
+      history: admin.firestore.FieldValue.arrayUnion(record),
+    });
+  } else {
+    await docRef.set({
+      history: [record],
+    });
   }
+
+  return timestamp.toDate();
 }
 
 // 🔹 Barcha attendancelarni olish
 async function getAllAttendance() {
   const snap = await db.collection("attendance").get();
-  const attendance = {};
+  const result = [];
 
-  snap.forEach((doc) => {
+  snap.forEach(doc => {
     const data = doc.data();
-    attendance[doc.id] = {
-      history: data.history
-        ? data.history.map((h) => ({
-            status: h.status,
-            name: h.name,
-            surname: h.surname,
-            date:
-              h.date instanceof admin.firestore.Timestamp
-                ? h.date.toDate()
-                : new Date(h.date),
-          }))
-        : [],
-    };
+    if (!data.history) return;
+
+    data.history.forEach(h => {
+      result.push({
+        telegramId: doc.id,
+        name: h.name,
+        surname: h.surname,
+        status: h.status,
+        date: h.date.toDate(),
+      });
+    });
   });
 
-  return attendance;
+  return result;
 }
 
 // 🔹 Bitta foydalanuvchi uchun attendance history olish

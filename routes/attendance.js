@@ -1,14 +1,29 @@
 const express = require("express");
 const router = express.Router();
+
 const usersCollection = require("../models/User"); // faqat TASDIQLANGAN userlar
-const { addAttendance, getAllAttendance } = require("../models/attendanceService");
+const {
+  addAttendance,
+  getAllAttendance,
+} = require("../models/attendanceService");
 const bot = require("../bot");
 
-// 🔹 Attendance + Telegram xabar
+/**
+ * POST /api/attendance
+ * Attendance + Telegram xabar
+ */
 router.post("/", async (req, res) => {
   try {
     const { userId, status, message } = req.body;
-    if (!userId) return res.status(400).json({ error: "No users selected" });
+
+    if (!userId) {
+      return res.status(400).json({ error: "No users selected" });
+    }
+
+    // Agar status ham message ham bo‘lmasa — hech narsa qilinmaydi
+    if (!status && !message) {
+      return res.status(400).json({ error: "Status or message required" });
+    }
 
     const ids = Array.isArray(userId) ? userId : [userId];
     let sentCount = 0;
@@ -18,45 +33,64 @@ router.post("/", async (req, res) => {
       if (!userDoc.exists) continue;
 
       const u = userDoc.data();
-      if (!u.telegramId || u.status !== "active") continue;
 
-      // 🔹 Attendance qo‘shish
+      // faqat active va telegramId bor userlar
+      if (u.status !== "active" || !u.telegramId) continue;
+
+      // =====================
+      // Attendance history
+      // =====================
       if (status) {
-        await addAttendance(u.telegramId, status, u.name, u.surname);
+        await addAttendance(
+          u.telegramId,
+          status,
+          u.name || "",
+          u.surname || "",
+        );
       }
 
-      // 🔹 Telegram xabar
+      // =====================
+      // Telegram message
+      // =====================
       let msg = message;
+
       if (!msg && status) {
-        msg = `Assalomu alaykum, hurmatli ${u.name || ""} ${u.surname || ""}.\nBugun darsda ${
+        msg = `Assalomu alaykum, ${u.name || ""} ${u.surname || ""} bugun darsda ${
           status === "present" ? "QATNASHDI" : "QATNASHMADI"
-        }.\nSana: ${new Date().toLocaleDateString("en-GB")}`;
+        } (Sana: ${new Date().toLocaleDateString("en-GB")}).`;
       }
+
+      if (!msg) continue;
 
       try {
         await bot.sendMessage(u.telegramId, msg);
+        sentCount++;
       } catch (err) {
         console.error("Telegram message failed for", u.telegramId, err);
       }
-
-      sentCount++;
     }
 
-    res.json({ message: "Messages sent ✅", sent: sentCount });
+    res.json({
+      message: "Attendance processed successfully ✅",
+      sent: sentCount,
+    });
   } catch (err) {
     console.error("Attendance error:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
 
-// GET /api/attendance
+/**
+ * GET /api/attendance
+ * View history
+ */
 router.get("/", async (req, res) => {
   try {
-    const attendance = await getAllAttendance();
-    res.json(attendance);
+    const history = await getAllAttendance();
+    res.json(history);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Failed to load attendance" });
+    console.error("Load attendance history error:", err);
+    res.status(500).json({ error: "Failed to load attendance history" });
   }
 });
 
