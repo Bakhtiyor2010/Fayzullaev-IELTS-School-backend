@@ -1,6 +1,11 @@
 const express = require("express");
 const router = express.Router();
-const { setPaid, setUnpaid, deletePayment, getAllPayments } = require("../models/paymentService");
+const {
+  setPaid,
+  setUnpaid,
+  deletePayment,
+  getAllPayments,
+} = require("../models/paymentService");
 const bot = require("../bot");
 
 // 🔹 PAID
@@ -8,17 +13,22 @@ router.post("/paid", async (req, res) => {
   try {
     const { userId, name, surname } = req.body;
     if (!userId || !name || !surname)
-      return res.status(400).json({ error: "userId, name and surname required" });
+      return res
+        .status(400)
+        .json({ error: "userId, name and surname required" });
 
     const { paidAt } = await setPaid(userId, name, surname);
 
     // 🔹 Telegramga xabar
     if (bot) {
       const monthName = getMonthName(paidAt);
-      
+      const russianMonthName = getRussianMonthName(paidAt);
+
       await bot.sendMessage(
         userId,
-        `Assalomu alaykum, hurmatli ${name} ${surname}!\n${monthName} oyi to‘lovi qabul qilindi (📅 ${formatDate(paidAt)})`
+        `Assalomu alaykum, hurmatli ${name} ${surname}!\n${monthName} oyi kurs to‘lovi qabul qilindi (📅 ${formatDate(paidAt)})
+        
+        Здравствуйте, уважаемый(ая) ${name} ${surname}!\nОплата курса за ${russianMonthName} принята (📅 ${formatDate(paidAt)})`,
       );
     }
 
@@ -32,8 +42,38 @@ router.post("/paid", async (req, res) => {
 // 🔹 Helper: oy nomi olish
 function getMonthName(date) {
   const months = [
-    "Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun",
-    "Iyul", "Avgust", "Sentabr", "Oktyabr", "Noyabr", "Dekabr"
+    "Yanvar",
+    "Fevral",
+    "Mart",
+    "Aprel",
+    "May",
+    "Iyun",
+    "Iyul",
+    "Avgust",
+    "Sentabr",
+    "Oktyabr",
+    "Noyabr",
+    "Dekabr",
+  ];
+  const d = new Date(date);
+  return months[d.getMonth()];
+}
+
+// 🔹 Helper: rus oy nomi olish
+function getRussianMonthName(date) {
+  const months = [
+    "Январь",
+    "Февраль",
+    "Март",
+    "Апрель",
+    "Май",
+    "Июнь",
+    "Июль",
+    "Август",
+    "Сентябрь",
+    "Октябрь",
+    "Ноябрь",
+    "Декабрь",
   ];
   const d = new Date(date);
   return months[d.getMonth()];
@@ -51,7 +91,9 @@ router.post("/unpaid", async (req, res) => {
     if (bot) {
       await bot.sendMessage(
         userId,
-        `Hurmatli ${name || ""} ${surname || ""}!\nIltimos, to‘lovni tezroq amalga oshiring.`
+        `Hurmatli ${name || ""} ${surname || ""}!\nIltimos, to‘lovni tezroq amalga oshiring.
+        
+        Уважаемый(ая) ${name || ""} ${surname || ""}!\nПожалуйста, произведите оплату как можно скорее.`,
       );
     }
 
@@ -74,7 +116,9 @@ router.delete("/:userId", async (req, res) => {
     if (bot) {
       await bot.sendMessage(
         userId,
-        `Hurmatli ${name || ""} ${surname || ""}!\nTo‘lov tarixingiz o‘chirildi.`
+        `Hurmatli ${name || ""} ${surname || ""}!\nTo‘lov tarixingiz o‘chirildi.
+        
+        Уважаемый(ая) ${name || ""} ${surname || ""}!\nВаша история платежей была удалена.`,
       );
     }
 

@@ -59,7 +59,9 @@ router.post("/", async (req, res) => {
     try {
       await bot.sendMessage(
         telegramId,
-        `Hurmatli ${firstName}, siz ro'yxatdan o'tdingiz. Admin tasdig‘ini kuting.`,
+        `Hurmatli ${firstName}, siz ro'yxatdan o'tdingiz. Admin tasdig‘ini kuting.
+        
+        Уважаемый(ая) ${firstName}, вы зарегистрировались. Дождитесь подтверждения от администратора.`,
       );
     } catch (err) {
       console.error("Telegram notify failed:", err);
@@ -128,7 +130,9 @@ router.delete("/:userId", async (req, res) => {
     try {
       await bot.sendMessage(
         userId,
-        `Hurmatli ${name} ${surname}, siz tizimdan o'chirildingiz. Qayta ro'yxatdan o'tish uchun /start ni bosing!`,
+        `Hurmatli ${name} ${surname}, siz tizimdan o'chirildingiz. Qayta ro'yxatdan o'tish uchun /start ni bosing!
+        
+        Уважаемый(ая) ${name} ${surname}, вы были удалены из системы. Чтобы зарегистрироваться снова, нажмите /start!`,
       );
     } catch (botErr) {
       console.error("Bot xabari yuborilmadi:", botErr);

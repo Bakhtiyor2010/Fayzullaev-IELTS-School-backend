@@ -8,7 +8,7 @@ const bot = require("../bot");
 router.get("/", async (req, res) => {
   try {
     const snapshot = await groupsCollection.get();
-    const groups = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const groups = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
     res.json(groups);
   } catch (err) {
     console.error(err);
@@ -40,11 +40,20 @@ router.put("/:id", async (req, res) => {
 
     await groupsCollection.doc(req.params.id).update({ name });
 
-    const usersSnapshot = await usersCollection.where("groupId", "==", req.params.id).get();
+    const usersSnapshot = await usersCollection
+      .where("groupId", "==", req.params.id)
+      .get();
     for (const doc of usersSnapshot.docs) {
       const user = doc.data();
       if (user.telegramId) {
-        await bot.sendMessage(user.telegramId, `ℹ️ Sizning guruh nomingiz "${name}" ga o'zgartirildi.`).catch(console.error);
+        await bot
+          .sendMessage(
+            user.telegramId,
+            `ℹ️ Sizning guruh nomingiz "${name}" ga o'zgartirildi.
+          
+          ℹ️ Название вашей группы было изменено на "${name}".`,
+          )
+          .catch(console.error);
       }
     }
 
@@ -61,18 +70,24 @@ router.delete("/:id", async (req, res) => {
     const groupId = req.params.id;
     await groupsCollection.doc(groupId).delete();
 
-    const usersSnapshot = await usersCollection.where("groupId", "==", groupId).get();
+    const usersSnapshot = await usersCollection
+      .where("groupId", "==", groupId)
+      .get();
     const promises = [];
 
     for (const doc of usersSnapshot.docs) {
       const user = doc.data();
-      const userName = user.name || "-";  // 🔹 name mavjud bo‘lmasa "-"
+      const userName = user.name || "-"; // 🔹 name mavjud bo‘lmasa "-"
       if (user.telegramId) {
         promises.push(
-          bot.sendMessage(
-            user.telegramId,
-            `⚠️ Hurmatli ${userName}, sizning guruhingiz o‘chirildi.`
-          ).catch(console.error)
+          bot
+            .sendMessage(
+              user.telegramId,
+              `⚠️ Hurmatli ${userName}, sizning guruhingiz o‘chirildi.
+            
+            ⚠️ Уважаемый(ая) ${userName}, ваша группа была удалена.`,
+            )
+            .catch(console.error),
         );
       }
       promises.push(usersCollection.doc(doc.id).delete());
@@ -80,7 +95,6 @@ router.delete("/:id", async (req, res) => {
 
     await Promise.all(promises);
     res.json({ message: "Group and its users deleted successfully" });
-
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to delete group and users" });

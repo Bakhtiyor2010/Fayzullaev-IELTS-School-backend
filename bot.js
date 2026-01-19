@@ -25,18 +25,24 @@ bot.onText(/\/start/, async (msg) => {
     if (snapshot.exists)
       return sendMessage(
         chatId,
-        "Siz allaqachon ro‘yxatdan o‘tgan ekansiz. /update bilan yangilashingiz mumkin.",
+        "Siz allaqachon ro‘yxatdan o‘tgan ekansiz. /update bilan yangilashingiz mumkin.\n\nВы уже зарегистрированы. Вы можете обновить данные с помощью команды /update.",
       );
 
     userStates[chatId] = { step: "ask_name" };
     await sendMessage(
       chatId,
-      "Assalomu alaykum! Fayzullaev IELTS School botiga xush kelibsiz!",
+      "Assalomu alaykum! Fayzullaev IELTS School botiga xush kelibsiz!\n\nЗдравствуйте! Добро пожаловать в бот Fayzullaev IELTS School!",
     );
-    await sendMessage(chatId, "Iltimos, ismingizni kiriting:");
+    await sendMessage(
+      chatId,
+      "Iltimos, ismingizni kiriting:\n\nПожалуйста, введите ваше имя:",
+    );
   } catch (err) {
     console.error(err);
-    sendMessage(chatId, "Server xatosi yuz berdi.");
+    sendMessage(
+      chatId,
+      "Server xatosi yuz berdi.\n\nПроизошла ошибка на сервере.",
+    );
   }
 });
 
@@ -48,14 +54,20 @@ bot.onText(/\/update/, async (msg) => {
     if (!snapshot.exists)
       return sendMessage(
         chatId,
-        "Siz hali ro‘yxatdan o‘tmagansiz. /start ni bosing.",
+        "Siz hali ro‘yxatdan o‘tmagansiz. /start ni bosing.\n\nВы еще не зарегистрированы. Нажмите /start.",
       );
 
     userStates[chatId] = { step: "update_name" };
-    await sendMessage(chatId, "Iltimos, yangi ismingizni kiriting:");
+    await sendMessage(
+      chatId,
+      "Iltimos, yangi ismingizni kiriting:\n\nПожалуйста, введите ваше новое имя:",
+    );
   } catch (err) {
     console.error(err);
-    sendMessage(chatId, "Server xatosi yuz berdi.");
+    sendMessage(
+      chatId,
+      "Server xatosi yuz berdi.\n\nПроизошла ошибка на сервере.",
+    );
   }
 });
 
@@ -65,17 +77,23 @@ bot.onText(/\/delete/, async (msg) => {
   try {
     const snapshot = await usersCollection.doc(String(chatId)).get();
     if (!snapshot.exists)
-      return sendMessage(chatId, "Siz hali ro‘yxatdan o‘tmagansiz.");
+      return sendMessage(
+        chatId,
+        "Siz hali ro‘yxatdan o‘tmagansiz.\n\nВы еще не зарегистрированы.",
+      );
 
     await usersCollection.doc(String(chatId)).delete();
     delete userStates[chatId];
     sendMessage(
       chatId,
-      "Sizning ma’lumotlaringiz o‘chirildi. /start bilan qayta ro‘yxatdan o‘ting.",
+      "Sizning ma’lumotlaringiz o‘chirildi. /start bilan qayta ro‘yxatdan o‘ting.\n\nВаши данные были удалены. Пройдите регистрацию снова с помощью /start.",
     );
   } catch (err) {
     console.error(err);
-    sendMessage(chatId, "Server xatosi yuz berdi.");
+    sendMessage(
+      chatId,
+      "Server xatosi yuz berdi.\n\nПроизошла ошибка на сервере.",
+    );
   }
 });
 
@@ -87,7 +105,7 @@ bot.onText(/\/payment/, async (msg) => {
     if (!userSnap.exists) {
       return sendMessage(
         chatId,
-        "Siz hali ro‘yxatdan o‘tmagansiz. /start ni bosing.",
+        "Siz hali ro‘yxatdan o‘tmagansiz. /start ni bosing.\n\nВы еще не зарегистрированы. Нажмите /start.",
       );
     }
 
@@ -98,7 +116,10 @@ bot.onText(/\/payment/, async (msg) => {
       .get();
 
     if (!paymentsSnap.exists) {
-      return sendMessage(chatId, "Sizda hali to‘lovlar qabul qilinmagan.");
+      return sendMessage(
+        chatId,
+        "Sizda hali to‘lovlar qabul qilinmagan.\n\nУ вас пока не принято ни одной оплаты.",
+      );
     }
 
     const payment = paymentsSnap.data();
@@ -112,10 +133,18 @@ bot.onText(/\/payment/, async (msg) => {
       `${String(paymentDate.getMonth() + 1).padStart(2, "0")}/` +
       `${paymentDate.getFullYear()}`;
 
-    sendMessage(chatId, `Oxirgi to‘lov qabul qilingan sana: ${formattedDate}`);
+    sendMessage(
+      chatId,
+      `Oxirgi to‘lov qabul qilingan sana: ${formattedDate}
+      
+      Дата последней принятой оплаты: ${formattedDate}`,
+    );
   } catch (err) {
     console.error(err);
-    sendMessage(chatId, "To‘lov ma’lumotlarini olishda xato yuz berdi.");
+    sendMessage(
+      chatId,
+      "To‘lov ma’lumotlarini olishda xato yuz berdi.\n\nПроизошла ошибка при получении информации о платежах.",
+    );
   }
 });
 
@@ -133,7 +162,7 @@ bot.on("callback_query", async (query) => {
     if (!state.name || !state.surname || !state.phone) {
       return sendMessage(
         chatId,
-        "Iltimos, barcha ma'lumotlarni to‘liq kiriting.",
+        "Iltimos, barcha ma'lumotlarni to‘liq kiriting.\n\nПожалуйста, введите все данные полностью.",
       );
     }
 
@@ -153,7 +182,9 @@ bot.on("callback_query", async (query) => {
 
       await sendMessage(
         chatId,
-        `Rahmat, ${state.name} ${state.surname}! Admin tasdig'ini kuting.`,
+        `Rahmat, ${state.name} ${state.surname}! Admin tasdig'ini kuting.
+        
+        Спасибо, ${state.name} ${state.surname}! Дождитесь подтверждения от администратора.`,
       );
       delete userStates[chatId];
     }
@@ -174,7 +205,9 @@ bot.on("callback_query", async (query) => {
       }
       await sendMessage(
         chatId,
-        `Sizning ma’lumotlaringiz yangilandi va guruhingiz ${groupName} bo‘ldi.`,
+        `Sizning ma’lumotlaringiz yangilandi va guruhingiz ${groupName} bo‘ldi.
+        
+        Ваши данные были обновлены, и ваша группа теперь ${groupName}.`,
       );
       delete userStates[chatId];
     }
@@ -182,7 +215,10 @@ bot.on("callback_query", async (query) => {
     await bot.answerCallbackQuery(query.id);
   } catch (err) {
     console.error("BOT ERROR:", err);
-    sendMessage(chatId, "Server xatosi yuz berdi.");
+    sendMessage(
+      chatId,
+      "Server xatosi yuz berdi.\n\nПроизошла ошибка на сервере.",
+    );
   }
 });
 
@@ -198,13 +234,16 @@ bot.on("message", async (msg) => {
       case "ask_name":
         state.name = text;
         state.step = "ask_surname";
-        return sendMessage(chatId, "Familiyangizni kiriting:");
+        return sendMessage(
+          chatId,
+          "Familiyangizni kiriting:\n\nВведите вашу фамилию:",
+        );
       case "ask_surname":
         state.surname = text;
         state.step = "ask_phone";
         return sendMessage(
           chatId,
-          "Telefon raqamingizni kiriting (masalan +998901234567 yoki 901234567):",
+          "Telefon raqamingizni kiriting (masalan +998901234567 yoki 901234567):\n\nВведите ваш номер телефона (например, +998901234567 или 901234567):",
         );
       case "ask_phone":
         state.phone = text;
@@ -213,26 +252,41 @@ bot.on("message", async (msg) => {
           delete userStates[chatId];
           return sendMessage(
             chatId,
-            "Hozircha guruhlar mavjud emas. Admin bilan bog'laning.",
+            "Hozircha guruhlar mavjud emas. Admin bilan bog'laning.\n\nПока что группы отсутствуют. Свяжитесь с администратором.",
           );
         }
-        const buttons = groupsSnapshot.docs.map((g) => [
-          { text: g.data().name, callback_data: g.id },
+
+        // Alfavit bo'yicha saralash
+        const sortedGroups = groupsSnapshot.docs
+          .map((g) => ({ id: g.id, name: g.data().name }))
+          .sort((a, b) =>
+            a.name.toLowerCase().localeCompare(b.name.toLowerCase()),
+          );
+
+        const buttons = sortedGroups.map((g) => [
+          { text: g.name, callback_data: g.id },
         ]);
         state.step = "ask_group";
-        return sendMessage(chatId, "Iltimos, guruhingizni tanlang:", {
-          reply_markup: { inline_keyboard: buttons },
-        });
+        return sendMessage(
+          chatId,
+          "Iltimos, guruhingizni tanlang:\n\nПожалуйста, выберите вашу группу:",
+          {
+            reply_markup: { inline_keyboard: buttons },
+          },
+        );
       case "update_name":
         state.name = text;
         state.step = "update_surname";
-        return sendMessage(chatId, "Familiyangizni kiriting:");
+        return sendMessage(
+          chatId,
+          "Familiyangizni kiriting:\n\nВведите вашу фамилию:",
+        );
       case "update_surname":
         state.surname = text;
         state.step = "update_phone";
         return sendMessage(
           chatId,
-          "Telefon raqamingizni kiriting (masalan +998901234567 yoki 901234567):",
+          "Telefon raqamingizni kiriting (masalan +998901234567 yoki 901234567):\n\nВведите ваш номер телефона (например, +998901234567 или 901234567):",
         );
       case "update_phone":
         state.phone = text;
@@ -241,20 +295,35 @@ bot.on("message", async (msg) => {
           delete userStates[chatId];
           return sendMessage(
             chatId,
-            "Hozircha guruhlar mavjud emas. Admin bilan bog'laning.",
+            "Hozircha guruhlar mavjud emas. Admin bilan bog'laning.\n\nПока что группы отсутствуют. Свяжитесь с администратором.",
           );
         }
-        const btns = groupsSnap.docs.map((g) => [
-          { text: g.data().name, callback_data: g.id },
+
+        // Alfavit bo'yicha saralash
+        const sortedGroupsUpdate = groupsSnap.docs
+          .map((g) => ({ id: g.id, name: g.data().name }))
+          .sort((a, b) =>
+            a.name.toLowerCase().localeCompare(b.name.toLowerCase()),
+          );
+
+        const btns = sortedGroupsUpdate.map((g) => [
+          { text: g.name, callback_data: g.id },
         ]);
         state.step = "update_group";
-        return sendMessage(chatId, "Iltimos, yangi guruhingizni tanlang:", {
-          reply_markup: { inline_keyboard: btns },
-        });
+        return sendMessage(
+          chatId,
+          "Iltimos, guruhingizni tanlang:\n\nПожалуйста, выберите вашу группу:",
+          {
+            reply_markup: { inline_keyboard: btns },
+          },
+        );
     }
   } catch (err) {
     console.error("BOT ERROR:", err);
-    sendMessage(chatId, "Server xatosi yuz berdi.");
+    sendMessage(
+      chatId,
+      "Server xatosi yuz berdi.\n\nПроизошла ошибка на сервере.",
+    );
   }
 });
 

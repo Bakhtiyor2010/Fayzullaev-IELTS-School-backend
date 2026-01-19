@@ -57,7 +57,9 @@ router.post("/", async (req, res) => {
       if (!msg && status) {
         msg = `Assalomu alaykum, ${u.name || ""} ${u.surname || ""} bugun darsda ${
           status === "present" ? "QATNASHDI" : "QATNASHMADI"
-        } (Sana: ${new Date().toLocaleDateString("en-GB")}).`;
+        } (Sana: ${new Date().toLocaleDateString("en-GB")}).
+        
+        Здравствуйте, ${u.name || ""} ${u.surname || ""}, сегодня на занятии вы ${status === "present" ? "ПРИСУТСТВОВАЛИ" : "НЕ ПРИСУТСТВОВАЛИ"} (Дата: ${new Date().toLocaleDateString("en-GB")}).`;
       }
 
       if (!msg) continue;
