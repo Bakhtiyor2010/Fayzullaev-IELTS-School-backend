@@ -116,7 +116,9 @@ async function getAllPayments() {
             status: h.status,
             name: h.name || null,
             surname: h.surname || null,
+            // 🔹 Firestore Timestamp → JS Date
             date: h.date ? h.date.toDate() : null,
+            dayKey: h.dayKey || null,
           }))
         : [],
     };
