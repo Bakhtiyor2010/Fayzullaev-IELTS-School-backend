@@ -9,7 +9,7 @@ async function addAttendance(
   surname,
   phone,
   groupName,
-  adminName,
+  adminName
 ) {
   if (!telegramId || !status) throw new Error("Invalid attendance data");
 
@@ -19,8 +19,7 @@ async function addAttendance(
   const doc = await docRef.get();
 
   let history = [];
-  if (doc.exists && Array.isArray(doc.data().history))
-    history = doc.data().history;
+  if (doc.exists && Array.isArray(doc.data().history)) history = doc.data().history;
 
   const todayIndex = history.findIndex((h) => h.day === today);
 
@@ -31,21 +30,17 @@ async function addAttendance(
     surname,
     phone,
     groupName,
-    admin: adminName,  // <-- admin username saqlanadi
+    admin: adminName,  // <-- haqiqat admin username
     updatedAt: admin.firestore.Timestamp.now(),
   };
 
-  if (todayIndex !== -1)
-    history[todayIndex] = record;
-  else
-    history.push(record);
+  if (todayIndex !== -1) history[todayIndex] = record;
+  else history.push(record);
 
   await docRef.set({ history }, { merge: true });
-
   return record;
 }
 
-// 🔹 Barcha attendancelarni olish (frontend bilan mos)
 async function getAllAttendance() {
   const snap = await db.collection("attendance").get();
   const result = [];
@@ -57,16 +52,15 @@ async function getAllAttendance() {
     data.history.forEach((h) => {
       result.push({
         telegramId: doc.id,
-  name: h.name,
-  surname: h.surname,
-  phone: h.phone || "",
-  groupName: h.groupName || "",
-  admin: h.admin || "",
-  status: h.status,
-        date:
-          h.updatedAt instanceof admin.firestore.Timestamp
-            ? h.updatedAt.toDate()
-            : new Date(h.updatedAt),
+        name: h.name,
+        surname: h.surname,
+        phone: h.phone || "",
+        groupName: h.groupName || "",
+        admin: h.admin || "",
+        status: h.status,
+        date: h.updatedAt instanceof admin.firestore.Timestamp
+          ? h.updatedAt.toDate()
+          : new Date(h.updatedAt),
       });
     });
   });
