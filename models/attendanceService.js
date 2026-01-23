@@ -2,7 +2,15 @@ const admin = require("firebase-admin");
 const db = admin.firestore();
 
 // 🔹 Attendance qo‘shish (bugungi sana uchun oxirgi holat saqlanadi)
-async function addAttendance(telegramId, status, name, surname) {
+async function addAttendance(
+  telegramId,
+  status,
+  name,
+  surname,
+  phone,
+  groupName,
+  adminName,
+) {
   if (!telegramId || !status) throw new Error("Invalid attendance data");
 
   const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
@@ -11,21 +19,26 @@ async function addAttendance(telegramId, status, name, surname) {
   const doc = await docRef.get();
 
   let history = [];
-  if (doc.exists && Array.isArray(doc.data().history)) history = doc.data().history;
+  if (doc.exists && Array.isArray(doc.data().history))
+    history = doc.data().history;
 
   // 🔹 Bugungi sana mavjudmi tekshirish
-  const todayIndex = history.findIndex(h => h.day === today);
+  const todayIndex = history.findIndex((h) => h.day === today);
 
   const record = {
-    day: today,                // kun bo‘yicha unique
+    day: today,
     status,
-    name: name || "",
-    surname: surname || "",
-    updatedAt: admin.firestore.Timestamp.now(), // sana
+    name,
+    surname,
+    phone,
+    groupName,
+    admin: adminName,
+    updatedAt: admin.firestore.Timestamp.now(),
   };
 
-  if (todayIndex !== -1) history[todayIndex] = record; // mavjud bo‘lsa update
-  else history.push(record);                             // yo‘q bo‘lsa push
+  if (todayIndex !== -1)
+    history[todayIndex] = record; // mavjud bo‘lsa update
+  else history.push(record); // yo‘q bo‘lsa push
 
   await docRef.set({ history }, { merge: true });
 
@@ -37,19 +50,23 @@ async function getAllAttendance() {
   const snap = await db.collection("attendance").get();
   const result = [];
 
-  snap.forEach(doc => {
+  snap.forEach((doc) => {
     const data = doc.data();
     if (!data.history) return;
 
-    data.history.forEach(h => {
+    data.history.forEach((h) => {
       result.push({
         telegramId: doc.id,
         name: h.name,
         surname: h.surname,
+        phone: h.phone || "",
+        groupName: h.groupName || "",
+        admin: h.admin || "",
         status: h.status,
-        date: h.updatedAt instanceof admin.firestore.Timestamp
-          ? h.updatedAt.toDate()
-          : new Date(h.updatedAt),
+        date:
+          h.updatedAt instanceof admin.firestore.Timestamp
+            ? h.updatedAt.toDate()
+            : new Date(h.updatedAt),
       });
     });
   });
@@ -66,13 +83,14 @@ async function getUserAttendance(userId) {
 
   const data = doc.data();
   return data.history
-    ? data.history.map(h => ({
+    ? data.history.map((h) => ({
         status: h.status,
         name: h.name,
         surname: h.surname,
-        date: h.updatedAt instanceof admin.firestore.Timestamp
-          ? h.updatedAt.toDate()
-          : new Date(h.updatedAt),
+        date:
+          h.updatedAt instanceof admin.firestore.Timestamp
+            ? h.updatedAt.toDate()
+            : new Date(h.updatedAt),
       }))
     : [];
 }

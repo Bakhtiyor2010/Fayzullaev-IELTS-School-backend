@@ -46,6 +46,9 @@ router.post("/", async (req, res) => {
           status,
           u.name || "",
           u.surname || "",
+          u.phone || "",
+          u.groupName || "",
+          req.user?.username || "Admin",
         );
       }
 
