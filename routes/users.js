@@ -91,13 +91,100 @@ router.get("/", async (req, res) => {
 });
 
 // PUT — user info yangilash
+// PUT — user info yangilash (faqat name, surname, phone)
 router.put("/:id", async (req, res) => {
   try {
-    await db.collection("users").doc(req.params.id).update(req.body);
-    const updated = await db.collection("users").doc(req.params.id).get();
-    res.json({ id: updated.id, ...updated.data() });
+    const userId = String(req.params.id);
+    const userRef = db.collection("users").doc(userId);
+
+    // 🔹 Eski ma’lumot
+    const oldDoc = await userRef.get();
+    if (!oldDoc.exists) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    const oldData = oldDoc.data();
+
+    // 🔹 Faqat ruxsat etilgan fieldlar
+    const allowedFields = ["name", "surname", "phone"];
+    let updateData = {};
+
+    allowedFields.forEach((f) => {
+      if (req.body[f] !== undefined) {
+        updateData[f] = req.body[f];
+      }
+    });
+
+    // Agar hech narsa kelmagan bo‘lsa
+    if (!Object.keys(updateData).length) {
+      return res.json({ message: "No valid fields provided" });
+    }
+
+    updateData.updatedAt = admin.firestore.FieldValue.serverTimestamp();
+
+    // 🔹 Mavjud update logikasi saqlandi
+    await userRef.update(updateData);
+
+    // 🔹 Yangi ma’lumot
+    const newDoc = await userRef.get();
+    const newData = newDoc.data();
+
+    // 🔹 O‘zgarishlarni aniqlash
+    let changes = [];
+
+    if (oldData.name !== newData.name)
+      changes.push(`Ism / Имя: ${oldData.name || "-"} → ${newData.name || "-"}`);
+
+    if (oldData.surname !== newData.surname)
+      changes.push(`Familiya / Фамилия: ${oldData.surname || "-"} → ${newData.surname || "-"}`);
+
+    if (oldData.phone !== newData.phone)
+      changes.push(`Telefon / Телефон: ${oldData.phone || "-"} → ${newData.phone || "-"}`);
+
+    // 🔹 Bot xabarlari (agar real o‘zgarish bo‘lsa)
+    if (changes.length) {
+      const changeText = changes.join("\n");
+
+      // USER ga (UZ + RU)
+      try {
+        await bot.sendMessage(
+          userId,
+`✏️ Ma'lumotlaringiz tahrirlandi:
+
+${changeText}
+
+Agar bu o‘zgarish siz tomonidan qilinmagan bo‘lsa, admin bilan bog‘laning.
+
+✏️ Ваши данные были изменены:
+
+${changeText}
+
+Если это сделали не вы, свяжитесь с администратором.`
+        );
+      } catch (err) {
+        console.error("User notify error:", err);
+      }
+
+      // ADMIN kanalga
+      try {
+        if (process.env.ADMIN_CHANNEL_ID) {
+          await bot.sendMessage(
+            process.env.ADMIN_CHANNEL_ID,
+`✏️ USER EDITED
+
+ID: ${userId}
+
+${changeText}`
+          );
+        }
+      } catch (err) {
+        console.error("Admin notify error:", err);
+      }
+    }
+
+    res.json({ id: newDoc.id, ...newData });
+
   } catch (err) {
-    console.error(err);
+    console.error("UPDATE USER ERROR:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
