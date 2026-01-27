@@ -91,7 +91,6 @@ router.get("/", async (req, res) => {
 });
 
 // PUT — user info yangilash
-// PUT — user info yangilash (faqat name, surname, phone)
 router.put("/:id", async (req, res) => {
   try {
     const userId = String(req.params.id);
@@ -104,8 +103,8 @@ router.put("/:id", async (req, res) => {
     }
     const oldData = oldDoc.data();
 
-    // 🔹 Faqat ruxsat etilgan fieldlar
-    const allowedFields = ["name", "surname", "phone"];
+    // 🔹 Ruxsat etilgan fieldlar (GROUP HAM QO‘SHILDI)
+    const allowedFields = ["name", "surname", "phone", "groupId"];
     let updateData = {};
 
     allowedFields.forEach((f) => {
@@ -114,6 +113,12 @@ router.put("/:id", async (req, res) => {
       }
     });
 
+    // 🔥 AGAR GROUP O‘ZGARGAN BO‘LSA → groupName ni ham yangilaymiz
+    if (req.body.groupId !== undefined) {
+      const groupDoc = await db.collection("groups").doc(req.body.groupId).get();
+      updateData.groupName = groupDoc.exists ? groupDoc.data().name : "";
+    }
+
     // Agar hech narsa kelmagan bo‘lsa
     if (!Object.keys(updateData).length) {
       return res.json({ message: "No valid fields provided" });
@@ -121,7 +126,7 @@ router.put("/:id", async (req, res) => {
 
     updateData.updatedAt = admin.firestore.FieldValue.serverTimestamp();
 
-    // 🔹 Mavjud update logikasi saqlandi
+    // 🔹 UPDATE
     await userRef.update(updateData);
 
     // 🔹 Yangi ma’lumot
@@ -140,11 +145,15 @@ router.put("/:id", async (req, res) => {
     if (oldData.phone !== newData.phone)
       changes.push(`Telefon / Телефон: ${oldData.phone || "-"} → ${newData.phone || "-"}`);
 
-    // 🔹 Bot xabarlari (agar real o‘zgarish bo‘lsa)
+    // 🔥 GROUP O'ZGARISHINI HAM QO‘SHDIK
+    if (oldData.groupName !== newData.groupName)
+      changes.push(`Guruh / Группа: ${oldData.groupName || "-"} → ${newData.groupName || "-"}`);
+
+    // 🔹 Bot xabarlari
     if (changes.length) {
       const changeText = changes.join("\n");
 
-      // USER ga (UZ + RU)
+      // USER ga
       try {
         await bot.sendMessage(
           userId,
@@ -152,7 +161,7 @@ router.put("/:id", async (req, res) => {
 
 ${changeText}
 
-Agar bu o‘zgarish siz tomonidan qilinmagan bo‘lsa, admin bilan bog‘laning.
+Agar bu o‘zgarish siz tomoningizdan qilinmagan bo‘lsa, admin bilan bog‘laning.
 
 ✏️ Ваши данные были изменены:
 
