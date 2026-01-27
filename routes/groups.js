@@ -1,4 +1,6 @@
 const express = require("express");
+const admin = require("firebase-admin");
+const db = admin.firestore();
 const router = express.Router();
 const groupsCollection = require("../models/Group");
 const usersCollection = require("../models/User");
@@ -38,28 +40,42 @@ router.put("/:id", async (req, res) => {
     const { name } = req.body;
     if (!name) return res.status(400).json({ error: "Name required" });
 
-    await groupsCollection.doc(req.params.id).update({ name });
+    const groupId = req.params.id;
 
+    // 🔹 GROUP nomini update
+    await groupsCollection.doc(groupId).update({ name });
+
+    // 🔹 Shu groupdagi userlarni olish
     const usersSnapshot = await usersCollection
-      .where("groupId", "==", req.params.id)
+      .where("groupId", "==", groupId)
       .get();
+
+    const batch = db.batch();
+
     for (const doc of usersSnapshot.docs) {
+      const userRef = usersCollection.doc(doc.id);
+
+      // 🔥 user hujjatida groupName sync
+      batch.update(userRef, { groupName: name });
+
       const user = doc.data();
       if (user.telegramId) {
-        await bot
-          .sendMessage(
-            user.telegramId,
-            `ℹ️ Sizning guruh nomingiz "${name}" ga o'zgartirildi.
-          
-ℹ️ Название вашей группы было изменено на "${name}".`,
-          )
-          .catch(console.error);
+        await bot.sendMessage(
+          user.telegramId,
+          `ℹ️ Sizning guruh nomingiz "${name}" ga o'zgartirildi.
+
+ℹ️ Название вашей группы было изменено на "${name}".`
+        ).catch(console.error);
       }
     }
 
-    res.json({ id: req.params.id, name });
+    // 🔹 BATCH update
+    await batch.commit();
+
+    res.json({ success: true, updatedUsers: usersSnapshot.size });
+
   } catch (err) {
-    console.error(err);
+    console.error("GROUP UPDATE ERROR:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
