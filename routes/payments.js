@@ -42,14 +42,14 @@ router.post("/paid", async (req, res) => {
     const { paidAt, monthKey } = await setPaid(userId, name, surname, month, year);
 
     if (bot) {
-      const monthNameUz = month;
-      const monthNameRu = month;
+      const monthUz = monthMap[month]?.uz || month;
+      const monthRu = monthMap[month]?.ru || month;
       const dateStr = formatDate(paidAt);
 
       await bot.sendMessage(
         userId,
-        `Assalomu alaykum, hurmatli ${name} ${surname}!\n${monthNameUz} oyi kurs to‘lovi qabul qilindi (📅 ${dateStr})\n\n` +
-        `Здравствуйте, уважаемый(ая) ${name} ${surname}!\nОплата курса за ${monthNameRu} принята (📅 ${dateStr})`
+        `Assalomu alaykum, hurmatli ${name} ${surname}!\n${monthUz} ${year} oyi kurs to‘lovi qabul qilindi (📅 ${dateStr})\n\n` +
+        `Здравствуйте, уважаемый(ая) ${name} ${surname}!\nОплата курса за ${monthRu} ${year} принята (📅 ${dateStr})`
       );
     }
 
