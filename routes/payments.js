@@ -8,6 +8,21 @@ const {
 } = require("../models/paymentService");
 const bot = require("../bot");
 
+const monthMap = {
+  January: { uz: "Yanvar", ru: "Январь" },
+  February: { uz: "Fevral", ru: "Февраль" },
+  March: { uz: "Mart", ru: "Март" },
+  April: { uz: "Aprel", ru: "Апрель" },
+  May: { uz: "May", ru: "Май" },
+  June: { uz: "Iyun", ru: "Июнь" },
+  July: { uz: "Iyul", ru: "Июль" },
+  August: { uz: "Avgust", ru: "Август" },
+  September: { uz: "Sentyabr", ru: "Сентябрь" },
+  October: { uz: "Oktyabr", ru: "Октябрь" },
+  November: { uz: "Noyabr", ru: "Ноябрь" },
+  December: { uz: "Dekabr", ru: "Декабрь" },
+};
+
 // Helper: format date
 function formatDate(date) {
   const d = new Date(date);
@@ -45,6 +60,7 @@ router.post("/paid", async (req, res) => {
   }
 });
 
+// --------------------- POST /unpaid ---------------------
 router.post("/unpaid", async (req, res) => {
   try {
     const { userId, name, surname, month, year } = req.body;
@@ -54,40 +70,17 @@ router.post("/unpaid", async (req, res) => {
     const { unpaidAt, monthKey } = await setUnpaid(userId, name, surname, month, year);
 
     if (bot) {
+      const monthUz = monthMap[month]?.uz || month;
+      const monthRu = monthMap[month]?.ru || month;
+
       await bot.sendMessage(
         userId,
-        `Hurmatli ${name || ""} ${surname || ""}! Iltimos, ${month} oyining to‘lovini tezroq amalga oshiring.\n\n` +
-        `Уважаемый(ая) ${name || ""} ${surname || ""}! Пожалуйста, произведите оплату за ${month} как можно скорее.`
+        `Hurmatli ${name || ""} ${surname || ""}!\n${monthUz} ${year} oyi to‘lovi hali amalga oshirilmagan. Iltimos, tezroq to‘lang.\n\n` +
+        `Уважаемый(ая) ${name || ""} ${surname || ""}!\nОплата за ${monthRu} ${year} ещё не произведена. Пожалуйста, оплатите как можно скорее.`
       );
     }
 
     res.json({ success: true, unpaidAt, monthKey });
-  } catch (err) {
-    console.error("UNPAID ERROR:", err);
-    res.status(500).json({ error: err.message || "Unpaid failed" });
-  }
-});
-
-// --------------------- POST /unpaid ---------------------
-router.post("/unpaid", async (req, res) => {
-  try {
-    const { userId, name, surname } = req.body;
-    if (!userId) return res.status(400).json({ error: "userId required" });
-
-    const result = await setUnpaid(userId, name, surname);
-
-    if (bot) {
-      await bot.sendMessage(
-        userId,
-        `Hurmatli ${name || ""} ${surname || ""}! Iltimos, to‘lovni tezroq amalga oshiring.\n\nУважаемый(ая) ${name || ""} ${surname || ""}! Пожалуйста, произведите оплату как можно скорее.`
-      );
-    }
-
-    // ✅ Send success flag so frontend doesn't show error
-    res.json({
-      success: true,
-      unpaidAt: result.unpaidAt
-    });
   } catch (err) {
     console.error("UNPAID ERROR:", err);
     res.status(500).json({ error: err.message || "Unpaid failed" });
